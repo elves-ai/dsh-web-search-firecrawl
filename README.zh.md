@@ -13,43 +13,17 @@ API 密钥在 **DSH 设置页的「Firecrawl」页面**中配置；同时保留 
 - DeepSeek Harness 安装在官方包 `0.1.0-rc.6` 线上（本插件 peer 依赖 `@deepseek-ai/dsh-web ^0.1.0-rc.6` 等——当前发布线）。更旧线上 pnpm 会在 profile 中嵌套安装第二份 seam 包，错误分类会降级（跨副本 `WebError`）；可在 profile 目录执行 `npm ls @deepseek-ai/dsh-web` 检查。
 - Firecrawl API 密钥。可在 [firecrawl.dev](https://firecrawl.dev) 获取。
 
-## 一键安装
+## 安装
 
-macOS / Linux / Windows Git Bash：
+请从以下两种方式中**二选一**：
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.sh | bash
-```
-
-Windows PowerShell：
-
-```powershell
-irm https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1 | iex
-```
-
-脚本会自动完成：解析最新版本 → 预写 `minimumReleaseAgeExclude`（放行刚发布的新版本）→ 执行 `dsh plugin --profile web add @pionai/dsh-web-search-firecrawl` → 校验 bundle 已注册 → 清理旧的 `web-search-firecrawl` 手动挂载行。全部操作幂等，可安全重复执行。
-
-安装后自动重启（可选）：
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.sh | bash -s -- --restart
-```
-
-```powershell
-& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1'))) -Restart
-```
-
-`curl | bash` / `irm | iex` 会执行远程代码——脚本已随仓库开源（[`scripts/install.sh`](scripts/install.sh) / [`scripts/install.ps1`](scripts/install.ps1)），可先下载审阅。
-
-### 手动安装（与一键脚本等价）
-
-全局安装的 `dsh` CLI：
+**方式一：全局安装的 `dsh` CLI**
 
 ```sh
 dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
 ```
 
-`deepseek-harness` 源码检出（那里的 `dsh` 是 pnpm workspace 脚本，而非全局命令；请在 workspace 根目录下运行）：
+**方式二：`deepseek-harness` 源码检出**（那里的 `dsh` 是 pnpm workspace 脚本，而非全局命令；请在 workspace 根目录下运行）
 
 ```sh
 pnpm dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
@@ -99,7 +73,7 @@ pnpm dsh plugin --profile web remove @pionai/dsh-web-search-firecrawl
 
 `dsh plugin remove` 会在 profile 目录内转发给 pnpm，并自动把包从 `dsh.profile.bundles` 移除。bundle 层移除后，`web` seam 行会恢复为 base bundle 的 `deepseek-official`。卸载后需**重启 `dsh web`**，运行中的进程才会停止加载该插件。
 
-该命令只移除包与挂载，不会删除设置页已保存的值；若希望一并删除已保存的 API Key，请先在 **Firecrawl** 页面点击「清除」。一键安装脚本预写的 `minimumReleaseAgeExclude` 条目无副作用，可保留。如果插件安装在其他 profile 中，请把 `web` 替换为对应的 profile 名。
+该命令只移除包与挂载，不会删除设置页已保存的值；若希望一并删除已保存的 API Key，请先在 **Firecrawl** 页面点击「清除」。如果插件安装在其他 profile 中，请把 `web` 替换为对应的 profile 名。
 
 ## 切换搜索提供方
 

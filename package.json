@@ -32,8 +32,6 @@
   "files": [
     "lib",
     "src",
-    "scripts/install.sh",
-    "scripts/install.ps1",
     "cordis.patch.yml",
     "README.md",
     "README.zh.md",

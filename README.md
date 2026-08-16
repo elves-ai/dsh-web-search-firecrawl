@@ -13,43 +13,17 @@ The API key is configured from the **Firecrawl page in DSH Settings**; `$FIRECRA
 - A DeepSeek Harness installation on the `0.1.0-rc.6` line of the official packages (the plugin peers on `@deepseek-ai/dsh-web ^0.1.0-rc.6` and friends — the current release line). On an older line, pnpm nests a second copy of the seam into the profile and error classification degrades (cross-copy `WebError`); check from the profile directory with `npm ls @deepseek-ai/dsh-web`.
 - A Firecrawl API key. Get one at [firecrawl.dev](https://firecrawl.dev).
 
-## One-click install
+## Install
 
-macOS / Linux / Windows Git Bash:
+Choose **one** of the following:
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.sh | bash
-```
-
-Windows PowerShell:
-
-```powershell
-irm https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1 | iex
-```
-
-The script: resolves the latest version, pre-writes `minimumReleaseAgeExclude` (so a just-published version is accepted), runs `dsh plugin --profile web add @pionai/dsh-web-search-firecrawl`, verifies the bundle registration, and removes any old manual `web-search-firecrawl` mount line. Every step is idempotent.
-
-Restart DSH after installing (optional):
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.sh | bash -s -- --restart
-```
-
-```powershell
-& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1'))) -Restart
-```
-
-`curl | bash` / `irm | iex` execute remote code — the scripts are open in the repository ([`scripts/install.sh`](scripts/install.sh) / [`scripts/install.ps1`](scripts/install.ps1)); review them first if you prefer.
-
-### Manual install (equivalent)
-
-Global `dsh` CLI:
+**Option 1 — global `dsh` CLI**
 
 ```sh
 dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
 ```
 
-`deepseek-harness` source checkout — there `dsh` is a pnpm workspace script, not a global binary; run it from the workspace root:
+**Option 2 — `deepseek-harness` source checkout** (there `dsh` is a pnpm workspace script, not a global binary; run it from the workspace root):
 
 ```sh
 pnpm dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
@@ -99,7 +73,7 @@ pnpm dsh plugin --profile web remove @pionai/dsh-web-search-firecrawl
 
 `dsh plugin remove` forwards to pnpm inside the profile directory and also removes the package from `dsh.profile.bundles`. Once the bundle layer is gone, the `web` seam row reverts to the base bundle's `deepseek-official` provider. Restart `dsh web` for the removal to take effect in the running process.
 
-The command removes the package and its mount, but not settings-page values. If you also want to delete the saved API key, clear it on the **Firecrawl** page before uninstalling. The `minimumReleaseAgeExclude` entry added by the one-click installer is harmless if left behind. If the plugin was installed into another profile, replace `web` with that profile name.
+The command removes the package and its mount, but not settings-page values. If you also want to delete the saved API key, clear it on the **Firecrawl** page before uninstalling. If the plugin was installed into another profile, replace `web` with that profile name.
 
 ## Switching search providers
 
