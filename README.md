@@ -67,6 +67,40 @@ Verify: the Settings dialog should show the **Firecrawl** page, and asking the a
 
 To keep DeepSeek search as the default and enable Firecrawl per instance instead, restate the `web` row in your profile's own `cordis.patch.yml` afterwards — the last write wins per row. The base bundle pins `searchProvider: deepseek-official`, so `$DSH_WEB_SEARCH_PROVIDER` selects the provider only when the `web` row sets no `searchProvider`: restate `web` with an empty config (`- id: web` + `config: {}`) for env selection, or with `searchProvider: deepseek-official` to pin DeepSeek.
 
+## Update
+
+Global `dsh` CLI:
+
+```sh
+dsh plugin --profile web update --latest @pionai/dsh-web-search-firecrawl
+```
+
+`deepseek-harness` source checkout — run from the workspace root:
+
+```sh
+pnpm dsh plugin --profile web update --latest @pionai/dsh-web-search-firecrawl
+```
+
+`dsh plugin update` forwards to pnpm inside the profile directory; `--latest` upgrades to the latest published version regardless of the currently installed range. After updating, **restart `dsh web`**, then hard-refresh the page (Cmd/Ctrl+Shift+R). If the plugin is installed in another profile, replace `web` with that profile name.
+
+## Uninstall
+
+Global `dsh` CLI:
+
+```sh
+dsh plugin --profile web remove @pionai/dsh-web-search-firecrawl
+```
+
+`deepseek-harness` source checkout — run from the workspace root:
+
+```sh
+pnpm dsh plugin --profile web remove @pionai/dsh-web-search-firecrawl
+```
+
+`dsh plugin remove` forwards to pnpm inside the profile directory and also removes the package from `dsh.profile.bundles`. Once the bundle layer is gone, the `web` seam row reverts to the base bundle's `deepseek-official` provider. Restart `dsh web` for the removal to take effect in the running process.
+
+The command removes the package and its mount, but not settings-page values. If you also want to delete the saved API key, clear it on the **Firecrawl** page before uninstalling. The `minimumReleaseAgeExclude` entry added by the one-click installer is harmless if left behind. If the plugin was installed into another profile, replace `web` with that profile name.
+
 ## Switching search providers
 
 Installing the plugin switches the `web` seam's `searchProvider` to `firecrawl`, so Firecrawl replaces the original web search by default. In **DSH Settings → Firecrawl**, the **Use Firecrawl** switch at the top selects between the two providers live:

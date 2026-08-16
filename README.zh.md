@@ -67,6 +67,40 @@ dsh web
 
 想保留 DeepSeek 搜索为默认、仅按实例启用 Firecrawl：在你自己的 profile `cordis.patch.yml` 中改写 `web` 行即可——每行最后一次写入生效。base bundle 固定了 `searchProvider: deepseek-official`，因此 `$DSH_WEB_SEARCH_PROVIDER` 只在 `web` 行未设置 `searchProvider` 时生效：用环境变量选择时把 `web` 行改写为空 config（`- id: web` + `config: {}`），要固定 DeepSeek 则写 `searchProvider: deepseek-official`。
 
+## 更新插件
+
+全局安装的 `dsh` CLI：
+
+```sh
+dsh plugin --profile web update --latest @pionai/dsh-web-search-firecrawl
+```
+
+`deepseek-harness` 源码检出（请在 workspace 根目录下运行）：
+
+```sh
+pnpm dsh plugin --profile web update --latest @pionai/dsh-web-search-firecrawl
+```
+
+`dsh plugin update` 会在 profile 目录内转发给 pnpm；`--latest` 表示升级到 npm 上的最新版本，不受当前已安装版本范围限制。更新后请**重启 `dsh web`**，并硬刷新页面（Cmd/Ctrl+Shift+R）。如果插件安装在其他 profile 中，请把 `web` 替换为对应的 profile 名。
+
+## 卸载
+
+全局安装的 `dsh` CLI：
+
+```sh
+dsh plugin --profile web remove @pionai/dsh-web-search-firecrawl
+```
+
+`deepseek-harness` 源码检出（请在 workspace 根目录下运行）：
+
+```sh
+pnpm dsh plugin --profile web remove @pionai/dsh-web-search-firecrawl
+```
+
+`dsh plugin remove` 会在 profile 目录内转发给 pnpm，并自动把包从 `dsh.profile.bundles` 移除。bundle 层移除后，`web` seam 行会恢复为 base bundle 的 `deepseek-official`。卸载后需**重启 `dsh web`**，运行中的进程才会停止加载该插件。
+
+该命令只移除包与挂载，不会删除设置页已保存的值；若希望一并删除已保存的 API Key，请先在 **Firecrawl** 页面点击「清除」。一键安装脚本预写的 `minimumReleaseAgeExclude` 条目无副作用，可保留。如果插件安装在其他 profile 中，请把 `web` 替换为对应的 profile 名。
+
 ## 切换搜索提供方
 
 安装本插件后，`web` seam 的 `searchProvider` 会切到 `firecrawl`，因此默认会替换原版网页搜索。打开 **DSH 设置 → Firecrawl** 后，页面顶部的「**使用 Firecrawl**」开关可以在两者之间实时切换：

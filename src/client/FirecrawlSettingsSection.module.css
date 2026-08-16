@@ -14,9 +14,9 @@
 .card {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--dsw-line-secondary, #2a2a35);
+  border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 16px;
-  background: var(--dsw-fill-tertiary, #1b1b22);
+  background: var(--dsw-alias-bg-layer-3);
   overflow: hidden;
 }
 
