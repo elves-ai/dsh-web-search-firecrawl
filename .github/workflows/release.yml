@@ -48,14 +48,12 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publish to npm
+    name: Publish to npm (trusted publishing / OIDC)
     needs: build
     runs-on: ubuntu-latest
-    env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     permissions:
       contents: read
-      id-token: write
+      id-token: write # OIDC token for npm trusted publishing + provenance
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,9 +66,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24 # trusted publishing needs Node >= 22.14 / npm >= 11.5.1
           registry-url: https://registry.npmjs.org
-          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -78,8 +75,10 @@ jobs:
       - name: Build
         run: pnpm run build
 
-      - name: Publish
-        if: env.NPM_TOKEN != ''
-        run: pnpm publish --no-git-checks --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Upgrade npm (trusted publishing requires npm >= 11.5.1)
+        run: npm install -g npm@latest
+
+      # npm publish runs prepublishOnly (typecheck + test + build) first.
+      # No NPM_TOKEN needed: npm exchanges the OIDC token with the registry.
+      - name: Publish to npm
+        run: npm publish --provenance --access public
