@@ -1,0 +1,19 @@
+# dsh-web-search-firecrawl bundle patch.
+#
+# Mounts the Firecrawl search provider and switches the web seam's search
+# provider to it. Apply over a dsh-base profile composition: the base bundle
+# inserts the `web` row, and this patch replaces that row's whole config
+# (patch semantics are replace-per-field, last write wins per row).
+#
+# The API key and a live "use Firecrawl / original DeepSeek" switch are
+# configured from the DSH Settings page ("Firecrawl" section). The plugin also
+# falls back to `$FIRECRAWL_API_KEY` for compatibility. Never commit a key.
+
+- insert:
+    - id: web-search-firecrawl
+      name: '@pionai/dsh-web-search-firecrawl'
+
+- id: web
+  name: '@deepseek-ai/dsh-web'
+  config:
+    searchProvider: firecrawl

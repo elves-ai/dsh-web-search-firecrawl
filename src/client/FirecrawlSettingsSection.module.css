@@ -1,0 +1,162 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.intro {
+  margin: 0;
+  color: var(--dsw-text-secondary, #9a9aa8);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dsw-line-secondary, #2a2a35);
+  border-radius: 16px;
+  background: var(--dsw-fill-tertiary, #1b1b22);
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 16px;
+}
+
+.row + .row {
+  border-top: 1px solid var(--dsw-line-secondary, #2a2a35);
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dsw-text-primary, #f2f2f5);
+}
+
+.desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-text-secondary, #9a9aa8);
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 260px;
+  justify-content: flex-end;
+}
+
+.eyeButton {
+  flex: none;
+}
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  cursor: pointer;
+}
+
+.switchInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  margin: 0;
+  cursor: inherit;
+}
+
+.switchInput:focus-visible + .switchTrack {
+  outline: 2px solid var(--dsw-brand, #4f7cff);
+  outline-offset: 2px;
+}
+
+.switchTrack {
+  display: inline-flex;
+  align-items: center;
+  width: 36px;
+  height: 20px;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(154, 154, 168, 0.28);
+  transition: background 120ms ease;
+}
+
+.switchInput:checked + .switchTrack {
+  background: #4f7cff;
+}
+
+.switchInput:disabled + .switchTrack {
+  opacity: 0.5;
+}
+
+.switchThumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 120ms ease;
+}
+
+.switchInput:checked + .switchTrack .switchThumb {
+  transform: translateX(16px);
+}
+
+.badgeOn,
+.badgeOff {
+  flex: none;
+  font-size: 11px;
+  line-height: 1;
+  padding: 5px 8px;
+  border-radius: 999px;
+}
+
+.badgeOn {
+  color: #6fe3b2;
+  background: rgba(111, 227, 178, 0.12);
+}
+
+.badgeOff {
+  color: #9a9aa8;
+  background: rgba(154, 154, 168, 0.12);
+}
+
+.error {
+  margin: 0;
+  color: #f2a1a1;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.notice {
+  margin: 0;
+  color: #6fe3b2;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.hint {
+  margin: 0;
+  color: var(--dsw-text-secondary, #9a9aa8);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
