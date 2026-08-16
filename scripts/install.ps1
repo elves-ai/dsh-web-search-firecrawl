@@ -10,8 +10,8 @@
 # Host 搜索提供方与设置页的 Firecrawl 配置页面。
 #
 # 用法：
-#   irm https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/main/scripts/install.ps1 | iex
-#   & ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/main/scripts/install.ps1'))) -Version 0.1.2 -Restart
+#   irm https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1 | iex
+#   & ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1'))) -Version 0.1.2 -Restart
 #
 # 参数：
 #   -Version    npm 版本号/范围，缺省 latest（自动解析为最新）。

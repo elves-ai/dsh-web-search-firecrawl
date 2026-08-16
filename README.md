@@ -18,13 +18,13 @@ The API key is configured from the **Firecrawl page in DSH Settings**; `$FIRECRA
 macOS / Linux / Windows Git Bash:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.sh | bash
 ```
 
 Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1 | iex
 ```
 
 The script: resolves the latest version, pre-writes `minimumReleaseAgeExclude` (so a just-published version is accepted), runs `dsh plugin --profile web add @pionai/dsh-web-search-firecrawl`, verifies the bundle registration, and removes any old manual `web-search-firecrawl` mount line. Every step is idempotent.
@@ -32,11 +32,11 @@ The script: resolves the latest version, pre-writes `minimumReleaseAgeExclude` (
 Restart DSH after installing (optional):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/main/scripts/install.sh | bash -s -- --restart
+curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.sh | bash -s -- --restart
 ```
 
 ```powershell
-& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/main/scripts/install.ps1'))) -Restart
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1'))) -Restart
 ```
 
 `curl | bash` / `irm | iex` execute remote code — the scripts are open in the repository ([`scripts/install.sh`](scripts/install.sh) / [`scripts/install.ps1`](scripts/install.ps1)); review them first if you prefer.

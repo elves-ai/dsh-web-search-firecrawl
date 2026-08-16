@@ -18,13 +18,13 @@ API 密钥在 **DSH 设置页的「Firecrawl」页面**中配置；同时保留 
 macOS / Linux / Windows Git Bash：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.sh | bash
 ```
 
 Windows PowerShell：
 
 ```powershell
-irm https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1 | iex
 ```
 
 脚本会自动完成：解析最新版本 → 预写 `minimumReleaseAgeExclude`（放行刚发布的新版本）→ 执行 `dsh plugin --profile web add @pionai/dsh-web-search-firecrawl` → 校验 bundle 已注册 → 清理旧的 `web-search-firecrawl` 手动挂载行。全部操作幂等，可安全重复执行。
@@ -32,11 +32,11 @@ irm https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/main/scrip
 安装后自动重启（可选）：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/main/scripts/install.sh | bash -s -- --restart
+curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.sh | bash -s -- --restart
 ```
 
 ```powershell
-& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/main/scripts/install.ps1'))) -Restart
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1'))) -Restart
 ```
 
 `curl | bash` / `irm | iex` 会执行远程代码——脚本已随仓库开源（[`scripts/install.sh`](scripts/install.sh) / [`scripts/install.ps1`](scripts/install.ps1)），可先下载审阅。
