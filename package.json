@@ -3,11 +3,12 @@
   "description": "Firecrawl-backed search provider for the DeepSeek Harness web capability seam (ctx.web)",
   "version": "0.1.0",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PionAI/dsh-web-search-firecrawl.git"
+    "url": "https://github.com/PionAI/dsh-web-search-firecrawl"
   },
   "type": "module",
   "main": "lib/index.js",

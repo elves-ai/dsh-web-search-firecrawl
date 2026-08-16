@@ -63,11 +63,14 @@ jobs:
         with:
           version: 11
 
+      # Do NOT set registry-url here: setup-node would write an .npmrc with a
+      # _authToken=${NODE_AUTH_TOKEN} placeholder and export a bogus NODE_AUTH_TOKEN,
+      # which makes npm prefer that token over the OIDC exchange and fail with
+      # 404 on PUT (npm/cli#8730, npm/cli#8976). Default registry is npmjs.org.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24 # trusted publishing needs Node >= 22.14 / npm >= 11.5.1
-          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -77,6 +80,11 @@ jobs:
 
       - name: Upgrade npm (trusted publishing requires npm >= 11.5.1)
         run: npm install -g npm@latest
+
+      - name: Clear npm auth leftovers so OIDC wins
+        run: |
+          rm -f "$HOME/.npmrc"
+          unset NODE_AUTH_TOKEN
 
       # npm publish runs prepublishOnly (typecheck + test + build) first.
       # No NPM_TOKEN needed: npm exchanges the OIDC token with the registry.
