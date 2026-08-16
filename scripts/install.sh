@@ -34,7 +34,7 @@ Firecrawl Web Search 一键安装脚本
 
 用法：bash scripts/install.sh [版本] [--restart] [--dry-run]
 
-  版本         npm 版本号/范围，缺省 latest（自动解析为最新）。示例：0.1.0、^0.1.0、latest
+  版本         npm 版本号/范围，缺省 latest（自动解析为最新）。示例：0.1.1、^0.1.1、latest
   --restart    装完后尝试 `pm2 restart dsh-web`（无 pm2 时仅提示）
   --dry-run    只打印将要执行的操作，不写任何文件
 
@@ -94,7 +94,7 @@ resolve_spec() {
         printf '%s' "$v"
       else
         warn "无法联网解析最新版本，回退为 latest，由 pnpm 直接解析。"
-        warn "若已知版本号，可显式传入：bash scripts/install.sh 0.1.0"
+        warn "若已知版本号，可显式传入：bash scripts/install.sh 0.1.1"
         printf 'latest'
       fi
       ;;

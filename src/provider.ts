@@ -28,7 +28,7 @@ export {
 export const FIRECRAWL_PROVIDER_ID = 'firecrawl'
 
 /** Attribution header sent on every request. Bump with the package version. */
-const USER_AGENT = 'dsh-web-search-firecrawl/0.1.0'
+const USER_AGENT = 'dsh-web-search-firecrawl/0.1.1'
 
 /** Resolved provider options (the plugin's `apply` supplies env-var and constant defaults). */
 export interface FirecrawlSearchProviderOptions {

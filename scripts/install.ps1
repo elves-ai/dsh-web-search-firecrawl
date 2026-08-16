@@ -11,7 +11,7 @@
 #
 # 用法：
 #   irm https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1 | iex
-#   & ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1'))) -Version 0.1.0 -Restart
+#   & ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/refs/heads/master/scripts/install.ps1'))) -Version 0.1.1 -Restart
 #
 # 参数：
 #   -Version    npm 版本号/范围，缺省 latest（自动解析为最新）。
@@ -54,7 +54,7 @@ function Resolve-Spec {
     }
     if ($v) { return ([string]$v).Trim() }
     Warn '无法联网解析最新版本，回退为 latest，由 pnpm 直接解析。'
-    Warn '若已知版本号，可显式传入：-Version 0.1.0'
+    Warn '若已知版本号，可显式传入：-Version 0.1.1'
     return 'latest'
   }
   return $Given
