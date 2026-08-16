@@ -49,10 +49,10 @@ Global `dsh` CLI:
 dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
 ```
 
-`deepseek-harness` source checkout — there `dsh` is a pnpm workspace script, not a global binary (`-w` forces the workspace root, so the command also works from a subdirectory):
+`deepseek-harness` source checkout — there `dsh` is a pnpm workspace script, not a global binary; run it from the workspace root:
 
 ```sh
-pnpm -w dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
+pnpm dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
 ```
 
 `dsh plugin` forwards to pnpm inside the profile directory and appends the bundle to the profile's layer stack automatically. The bundle patch inserts the `web-search-firecrawl` plugin row and switches the `web` seam row to `searchProvider: firecrawl` (replacing the base bundle's `deepseek-official`).

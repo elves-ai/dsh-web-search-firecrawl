@@ -49,10 +49,10 @@ curl -fsSL https://raw.githubusercontent.com/PionAI/dsh-web-search-firecrawl/ref
 dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
 ```
 
-`deepseek-harness` 源码检出（那里的 `dsh` 是 pnpm workspace 脚本，而非全局命令；`-w` 强制在 workspace 根目录执行，从子目录运行也同样有效）：
+`deepseek-harness` 源码检出（那里的 `dsh` 是 pnpm workspace 脚本，而非全局命令；请在 workspace 根目录下运行）：
 
 ```sh
-pnpm -w dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
+pnpm dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
 ```
 
 `dsh plugin` 会在 profile 目录内转发给 pnpm，并自动把 bundle 追加到 profile 的层叠列表。该 bundle patch 插入 `web-search-firecrawl` 插件行，并把 `web` seam 行切换为 `searchProvider: firecrawl`（替换 base bundle 的 `deepseek-official`）。
