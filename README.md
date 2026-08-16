@@ -2,6 +2,8 @@
 
 English | [中文](README.zh.md)
 
+![Firecrawl plugin page in DSH Settings](docs/firecrawl-settings.png)
+
 A [Firecrawl](https://firecrawl.dev)-backed search provider for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) web capability seam (`ctx.web`): it makes the built-in `web_search` tool run on Firecrawl's search API instead of the shipped DeepSeek route.
 
 The plugin is a Cordis function plugin that registers a `WebSearchProvider` (`id: firecrawl`) into the seam — it does not own `ctx.web` and does not register a model-facing tool (the tool schema stays with `@deepseek-ai/dsh-tool-web`). It calls Firecrawl's `POST /v1/search` endpoint and maps the flat `data[]` into the seam's normalized `WebSearchResult`.
@@ -20,13 +22,13 @@ Choose **one** of the following:
 **Option 1 — global `dsh` CLI**
 
 ```sh
-dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
+dsh plugin --profile web add @pionai/dsh-web-search-firecrawl@latest
 ```
 
 **Option 2 — `deepseek-harness` source checkout** (there `dsh` is a pnpm workspace script, not a global binary; run it from the workspace root):
 
 ```sh
-pnpm dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
+pnpm dsh plugin --profile web add @pionai/dsh-web-search-firecrawl@latest
 ```
 
 `dsh plugin` forwards to pnpm inside the profile directory and appends the bundle to the profile's layer stack automatically. The bundle patch inserts the `web-search-firecrawl` plugin row and switches the `web` seam row to `searchProvider: firecrawl` (replacing the base bundle's `deepseek-official`).

@@ -2,6 +2,8 @@
 
 [English](README.md) | 中文
 
+![DSH 设置中的 Firecrawl 插件页面](docs/firecrawl-settings.png)
+
 由 [Firecrawl](https://firecrawl.dev) 支持的搜索提供方，用于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 web 能力 seam（`ctx.web`）：让内置的 `web_search` 工具走 Firecrawl 搜索 API，而不是随产品附带的 DeepSeek 路由。
 
 本插件是一个 Cordis 函数插件，向 seam 注册 `WebSearchProvider`（`id: firecrawl`）——它不拥有 `ctx.web`，也不注册面向模型的工具（工具 schema 仍属于 `@deepseek-ai/dsh-tool-web`）。它调用 Firecrawl 的 `POST /v1/search` 端点，把扁平 `data[]` 映射为 seam 规范化的 `WebSearchResult`。
@@ -20,13 +22,13 @@ API 密钥在 **DSH 设置页的「Firecrawl」页面**中配置；同时保留 
 **方式一：全局安装的 `dsh` CLI**
 
 ```sh
-dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
+dsh plugin --profile web add @pionai/dsh-web-search-firecrawl@latest
 ```
 
 **方式二：`deepseek-harness` 源码检出**（那里的 `dsh` 是 pnpm workspace 脚本，而非全局命令；请在 workspace 根目录下运行）
 
 ```sh
-pnpm dsh plugin --profile web add @pionai/dsh-web-search-firecrawl
+pnpm dsh plugin --profile web add @pionai/dsh-web-search-firecrawl@latest
 ```
 
 `dsh plugin` 会在 profile 目录内转发给 pnpm，并自动把 bundle 追加到 profile 的层叠列表。该 bundle patch 插入 `web-search-firecrawl` 插件行，并把 `web` seam 行切换为 `searchProvider: firecrawl`（替换 base bundle 的 `deepseek-official`）。
