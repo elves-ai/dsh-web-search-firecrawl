@@ -1,5 +1,5 @@
 /**
- * `@pionai/dsh-web-search-firecrawl`: registers a Firecrawl-backed `WebSearchProvider`
+ * `@elves-ai/dsh-web-search-firecrawl`: registers a Firecrawl-backed `WebSearchProvider`
  * with `ctx.web`. A function/namespace plugin (NOT a default-export service):
  * a search provider does not own the `ctx.web` key — it registers INTO the
  * seam's provider registry, exactly as `@deepseek-ai/dsh-llm-deepseek`
@@ -11,7 +11,7 @@
  * through the plugin's own fenced `/firecrawl/api` route. Environment and
  * bundle-entry values remain available as fallback/composition layers.
  *
- * @module @pionai/dsh-web-search-firecrawl
+ * @module @elves-ai/dsh-web-search-firecrawl
  */
 
 import type { Context } from '@deepseek-ai/cordis'

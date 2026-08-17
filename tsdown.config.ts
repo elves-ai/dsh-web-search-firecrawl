@@ -1,5 +1,5 @@
 /**
- * tsdown build for `@pionai/dsh-web-search-firecrawl`:
+ * tsdown build for `@elves-ai/dsh-web-search-firecrawl`:
  * - host half: lib/index.js + lib/invariant.js (ESM node),
  * - browser half: lib/client.js (CJS closure factory registered through
  *   `window.__ModuleLoader__.load` under the package name).
@@ -20,7 +20,7 @@ import { transform } from 'lightningcss'
 
 const require = createRequire(import.meta.url)
 
-const PACKAGE_NAME = '@pionai/dsh-web-search-firecrawl'
+const PACKAGE_NAME = '@elves-ai/dsh-web-search-firecrawl'
 
 /** Node builtins must never survive into the browser module-loader factory. */
 const NODE_BUILTINS = new Set([...builtinModules, ...builtinModules.map(id => `node:${id}`)])

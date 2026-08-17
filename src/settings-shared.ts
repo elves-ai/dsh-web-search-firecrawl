@@ -5,7 +5,7 @@
  * through the plugin's own fenced `/firecrawl/api` route. Kept free of
  * schemastery and `@deepseek-ai/dsh-settings` so the browser bundle never
  * pulls the host-only settings runtime in.
- * @module @pionai/dsh-web-search-firecrawl/settings-shared
+ * @module @elves-ai/dsh-web-search-firecrawl/settings-shared
  */
 
 /** User-settings namespace carrying the Firecrawl provider configuration. */

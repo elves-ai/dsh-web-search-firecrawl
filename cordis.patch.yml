@@ -11,7 +11,7 @@
 
 - insert:
     - id: web-search-firecrawl
-      name: '@pionai/dsh-web-search-firecrawl'
+      name: '@elves-ai/dsh-web-search-firecrawl'
 
 - id: web
   name: '@deepseek-ai/dsh-web'

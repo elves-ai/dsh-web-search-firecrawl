@@ -1,5 +1,5 @@
 /**
- * Client half of `@pionai/dsh-web-search-firecrawl`: contributes the
+ * Client half of `@elves-ai/dsh-web-search-firecrawl`: contributes the
  * "Firecrawl" page to the DSH Settings shell. The page reads and writes the
  * plugin's settings namespace through the host-owned `/firecrawl/api` route
  * (the settings RPC allowlist does not serve third-party namespaces).

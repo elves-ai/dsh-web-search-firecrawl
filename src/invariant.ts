@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@pionai/dsh-web-search-firecrawl`.
- * @module @pionai/dsh-web-search-firecrawl/invariant
+ * Package-owned invariant companion for `@elves-ai/dsh-web-search-firecrawl`.
+ * @module @elves-ai/dsh-web-search-firecrawl/invariant
  */
 
 /* jscpd:ignore-start */
 import type { Context } from '@deepseek-ai/cordis'
 import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
 
-const PACKAGE_NAME = '@pionai/dsh-web-search-firecrawl'
+const PACKAGE_NAME = '@elves-ai/dsh-web-search-firecrawl'
 
 /** Cordis companion plugin name. */
 export const name = 'web-search-firecrawl-invariant'

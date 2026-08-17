@@ -3,7 +3,7 @@
  * (`POST /v1/search`). It maps `title` to `title` and the `description` excerpt (bounded by
  * `maxSnippetChars`) to `snippet`, keeps citeable URL-only entries when no description is
  * present, and omits `content` because Firecrawl returns no generated answer.
- * @module @pionai/dsh-web-search-firecrawl/provider
+ * @module @elves-ai/dsh-web-search-firecrawl/provider
  */
 
 import { WebError } from '@deepseek-ai/dsh-web'

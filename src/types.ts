@@ -4,7 +4,7 @@
  * optional title, and an optional `description` (often a page-markdown excerpt rather than a
  * short sentence, so the provider bounds it before mapping to `snippet`).
  *
- * @module @pionai/dsh-web-search-firecrawl/types
+ * @module @elves-ai/dsh-web-search-firecrawl/types
  */
 
 /** Request body sent to Firecrawl's search endpoint. */

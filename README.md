@@ -22,13 +22,13 @@ Choose **one** of the following:
 **Option 1 — global `dsh` CLI**
 
 ```sh
-dsh plugin --profile web add @pionai/dsh-web-search-firecrawl@latest
+dsh plugin --profile web add @elves-ai/dsh-web-search-firecrawl@latest
 ```
 
 **Option 2 — `deepseek-harness` source checkout** (there `dsh` is a pnpm workspace script, not a global binary; run it from the workspace root):
 
 ```sh
-pnpm dsh plugin --profile web add @pionai/dsh-web-search-firecrawl@latest
+pnpm dsh plugin --profile web add @elves-ai/dsh-web-search-firecrawl@latest
 ```
 
 `dsh plugin` forwards to pnpm inside the profile directory and appends the bundle to the profile's layer stack automatically. The bundle patch inserts the `web-search-firecrawl` plugin row and switches the `web` seam row to `searchProvider: firecrawl` (replacing the base bundle's `deepseek-official`).
@@ -48,13 +48,13 @@ To keep DeepSeek search as the default and enable Firecrawl per instance instead
 Global `dsh` CLI:
 
 ```sh
-dsh plugin --profile web update --latest @pionai/dsh-web-search-firecrawl
+dsh plugin --profile web update --latest @elves-ai/dsh-web-search-firecrawl
 ```
 
 `deepseek-harness` source checkout — run from the workspace root:
 
 ```sh
-pnpm dsh plugin --profile web update --latest @pionai/dsh-web-search-firecrawl
+pnpm dsh plugin --profile web update --latest @elves-ai/dsh-web-search-firecrawl
 ```
 
 `dsh plugin update` forwards to pnpm inside the profile directory; `--latest` upgrades to the latest published version regardless of the currently installed range. After updating, **restart `dsh web`**, then hard-refresh the page (Cmd/Ctrl+Shift+R). If the plugin is installed in another profile, replace `web` with that profile name.
@@ -64,13 +64,13 @@ pnpm dsh plugin --profile web update --latest @pionai/dsh-web-search-firecrawl
 Global `dsh` CLI:
 
 ```sh
-dsh plugin --profile web remove @pionai/dsh-web-search-firecrawl
+dsh plugin --profile web remove @elves-ai/dsh-web-search-firecrawl
 ```
 
 `deepseek-harness` source checkout — run from the workspace root:
 
 ```sh
-pnpm dsh plugin --profile web remove @pionai/dsh-web-search-firecrawl
+pnpm dsh plugin --profile web remove @elves-ai/dsh-web-search-firecrawl
 ```
 
 `dsh plugin remove` forwards to pnpm inside the profile directory and also removes the package from `dsh.profile.bundles`. Once the bundle layer is gone, the `web` seam row reverts to the base bundle's `deepseek-official` provider. Restart `dsh web` for the removal to take effect in the running process.
@@ -117,7 +117,7 @@ Every field is editable from the settings page. Bundle config remains the compos
 ```yaml
 # profile cordis.patch.yml (optional; usually not needed)
 - id: web-search-firecrawl
-  name: '@pionai/dsh-web-search-firecrawl'
+  name: '@elves-ai/dsh-web-search-firecrawl'
   config:
     limit: 10
 ```

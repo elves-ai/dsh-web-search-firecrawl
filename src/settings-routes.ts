@@ -6,7 +6,7 @@
  * the plugin's own webserver route, gated by the same browser-trust fence as
  * the /api gateway (Host-header loopback or a configured trusted host; no
  * cross-site browser markers).
- * @module @pionai/dsh-web-search-firecrawl/settings-routes
+ * @module @elves-ai/dsh-web-search-firecrawl/settings-routes
  */
 
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http'

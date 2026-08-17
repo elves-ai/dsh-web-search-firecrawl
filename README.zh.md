@@ -22,13 +22,13 @@ API 密钥在 **DSH 设置页的「Firecrawl」页面**中配置；同时保留 
 **方式一：全局安装的 `dsh` CLI**
 
 ```sh
-dsh plugin --profile web add @pionai/dsh-web-search-firecrawl@latest
+dsh plugin --profile web add @elves-ai/dsh-web-search-firecrawl@latest
 ```
 
 **方式二：`deepseek-harness` 源码检出**（那里的 `dsh` 是 pnpm workspace 脚本，而非全局命令；请在 workspace 根目录下运行）
 
 ```sh
-pnpm dsh plugin --profile web add @pionai/dsh-web-search-firecrawl@latest
+pnpm dsh plugin --profile web add @elves-ai/dsh-web-search-firecrawl@latest
 ```
 
 `dsh plugin` 会在 profile 目录内转发给 pnpm，并自动把 bundle 追加到 profile 的层叠列表。该 bundle patch 插入 `web-search-firecrawl` 插件行，并把 `web` seam 行切换为 `searchProvider: firecrawl`（替换 base bundle 的 `deepseek-official`）。
@@ -48,13 +48,13 @@ dsh web
 全局安装的 `dsh` CLI：
 
 ```sh
-dsh plugin --profile web update --latest @pionai/dsh-web-search-firecrawl
+dsh plugin --profile web update --latest @elves-ai/dsh-web-search-firecrawl
 ```
 
 `deepseek-harness` 源码检出（请在 workspace 根目录下运行）：
 
 ```sh
-pnpm dsh plugin --profile web update --latest @pionai/dsh-web-search-firecrawl
+pnpm dsh plugin --profile web update --latest @elves-ai/dsh-web-search-firecrawl
 ```
 
 `dsh plugin update` 会在 profile 目录内转发给 pnpm；`--latest` 表示升级到 npm 上的最新版本，不受当前已安装版本范围限制。更新后请**重启 `dsh web`**，并硬刷新页面（Cmd/Ctrl+Shift+R）。如果插件安装在其他 profile 中，请把 `web` 替换为对应的 profile 名。
@@ -64,13 +64,13 @@ pnpm dsh plugin --profile web update --latest @pionai/dsh-web-search-firecrawl
 全局安装的 `dsh` CLI：
 
 ```sh
-dsh plugin --profile web remove @pionai/dsh-web-search-firecrawl
+dsh plugin --profile web remove @elves-ai/dsh-web-search-firecrawl
 ```
 
 `deepseek-harness` 源码检出（请在 workspace 根目录下运行）：
 
 ```sh
-pnpm dsh plugin --profile web remove @pionai/dsh-web-search-firecrawl
+pnpm dsh plugin --profile web remove @elves-ai/dsh-web-search-firecrawl
 ```
 
 `dsh plugin remove` 会在 profile 目录内转发给 pnpm，并自动把包从 `dsh.profile.bundles` 移除。bundle 层移除后，`web` seam 行会恢复为 base bundle 的 `deepseek-official`。卸载后需**重启 `dsh web`**，运行中的进程才会停止加载该插件。
@@ -117,7 +117,7 @@ dsh --profile web
 ```yaml
 # profile cordis.patch.yml（可选，通常无需配置）
 - id: web-search-firecrawl
-  name: '@pionai/dsh-web-search-firecrawl'
+  name: '@elves-ai/dsh-web-search-firecrawl'
   config:
     limit: 10
 ```

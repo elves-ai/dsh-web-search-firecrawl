@@ -9,7 +9,7 @@
  * Its endpoint/model/limits resolve from the official `web-search-deepseek`
  * settings namespace when that row is mounted, so the switch behaves like the
  * original provider, not a simplified copy.
- * @module @pionai/dsh-web-search-firecrawl/deepseek-provider
+ * @module @elves-ai/dsh-web-search-firecrawl/deepseek-provider
  */
 
 import type { Context } from '@deepseek-ai/cordis'

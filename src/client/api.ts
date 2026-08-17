@@ -2,7 +2,7 @@
  * Client wire face for the plugin's own `/firecrawl/api` route. The host
  * calls the settings seam in-process, so the browser never depends on the
  * api-proxy allowlist that would otherwise keep third-party namespaces out.
- * @module @pionai/dsh-web-search-firecrawl/client/api
+ * @module @elves-ai/dsh-web-search-firecrawl/client/api
  */
 
 /** One redacted secret slot (`set` tells whether a value is configured). */
