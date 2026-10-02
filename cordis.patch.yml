@@ -5,13 +5,16 @@
 # inserts the `web` row, and this patch replaces that row's whole config
 # (patch semantics are replace-per-field, last write wins per row).
 #
-# The API key and a live "use Firecrawl / original DeepSeek" switch are
-# configured from the DSH Settings page ("Firecrawl" section). The plugin also
-# falls back to `$FIRECRAWL_API_KEY` for compatibility. Never commit a key.
+# The API key is configured from the DSH Settings page ("Firecrawl" section).
+# The plugin also falls back to `$FIRECRAWL_API_KEY` for compatibility, and a
+# loopback `baseURL` (e.g. self-hosted http://localhost:3002) works without
+# any key. Never commit a key.
 
 - insert:
     - id: web-search-firecrawl
       name: '@elves-ai/dsh-web-search-firecrawl'
+      config:
+        baseURL: http://localhost:3002
 
 - id: web
   name: '@deepseek-ai/dsh-web'

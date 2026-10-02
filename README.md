@@ -12,8 +12,8 @@ The API key is configured from the **Firecrawl page in DSH Settings**; `$FIRECRA
 
 ## Requirements
 
-- A DeepSeek Harness installation on the `0.1.0-rc.6` line of the official packages (the plugin peers on `@deepseek-ai/dsh-web ^0.1.0-rc.6` and friends — the current release line). On an older line, pnpm nests a second copy of the seam into the profile and error classification degrades (cross-copy `WebError`); check from the profile directory with `npm ls @deepseek-ai/dsh-web`.
-- A Firecrawl API key. Get one at [firecrawl.dev](https://firecrawl.dev).
+- A DeepSeek Harness installation on the `0.2.0-rc.2` line of the official packages (the plugin peers on `@deepseek-ai/dsh-web ^0.2.0-rc.2` and friends — the current release line). On an older line, pnpm nests a second copy of the seam into the profile and error classification degrades (cross-copy `WebError`); check from the profile directory with `npm ls @deepseek-ai/dsh-web`.
+- A Firecrawl API key. Get one at [firecrawl.dev](https://firecrawl.dev), or point `baseURL` at a self-hosted instance (e.g. `http://localhost:3002` — no key needed when that instance runs with `USE_DB_AUTHENTICATION=false`).
 
 ## Install
 
@@ -79,12 +79,7 @@ The command removes the package and its mount, but not settings-page values. If 
 
 ## Switching search providers
 
-Installing the plugin switches the `web` seam's `searchProvider` to `firecrawl`, so Firecrawl replaces the original web search by default. In **DSH Settings → Firecrawl**, the **Use Firecrawl** switch at the top selects between the two providers live:
-
-- **On (default)**: Firecrawl `POST /v1/search` is used.
-- **Off**: the registered `firecrawl` provider delegates to the original DeepSeek search implementation, so the model keeps using the shipped DeepSeek search route; DeepSeek's endpoint/model still resolve from the original `web-search-deepseek` settings section.
-
-The switch applies immediately without a restart. Firecrawl credentials and request settings are preserved while off.
+Installing the plugin switches the `web` seam's `searchProvider` to `firecrawl`, so Firecrawl replaces the original web search by default. This is a pure-Firecrawl provider: there is no DeepSeek fallback. To go back, uninstall the plugin (or restate the `web` row to `searchProvider: deepseek-official`).
 
 ## Configuring the API key
 
@@ -106,9 +101,8 @@ dsh --profile web
 
 | Key | Default | Meaning |
 |---|---|---|
-| `useFirecrawl` | `true` | Whether to use Firecrawl; `false` switches back to the original DeepSeek web search. |
 | `apiKey` | (blank) → `$FIRECRAWL_API_KEY` | Firecrawl API key. Written as a secret by the settings page and never echoed back. Blank falls back to the env var; with neither present the provider is unavailable. |
-| `baseURL` | `https://api.firecrawl.dev` | Endpoint base; `/v1/search` is appended. An unparseable value makes the provider unavailable. |
+| `baseURL` | `https://api.firecrawl.dev` | Endpoint base; `/v1/search` is appended. Point at a self-hosted instance (e.g. `http://localhost:3002`) to search without a cloud key. An unparseable value makes the provider unavailable. |
 | `limit` | (unset) | Default result count when a request carries no `maxResults`. Unset sends no default. Must be a positive integer. |
 | `maxSnippetChars` | `600` | Upper bound on characters kept from one `description` when mapping `snippet`. Must be a positive integer. |
 

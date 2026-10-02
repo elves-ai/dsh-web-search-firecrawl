@@ -21,11 +21,12 @@ export interface FirecrawlSearchDataItem {
   description?: string | null
 }
 
-/** Firecrawl's search response envelope. */
+/** Firecrawl's search response envelope (v1: flat `data[]`, v2: `data.web[]`). */
 export interface FirecrawlSearchResponse {
   /** Envelope outcome; absent or false is treated as failure by the provider. */
   success?: boolean
-  data?: FirecrawlSearchDataItem[]
+  /** v1 shape: flat array. v2 shape: `{ web: [...] }` (also tolerated). */
+  data?: FirecrawlSearchDataItem[] | { web?: FirecrawlSearchDataItem[] }
   /** Non-fatal warning text; ignored by the provider. */
   warning?: string | null
   /** Error detail present when `success` is false. */

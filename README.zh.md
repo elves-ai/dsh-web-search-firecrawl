@@ -12,8 +12,8 @@ API 密钥在 **DSH 设置页的「Firecrawl」页面**中配置；同时保留 
 
 ## 环境要求
 
-- DeepSeek Harness 安装在官方包 `0.1.0-rc.6` 线上（本插件 peer 依赖 `@deepseek-ai/dsh-web ^0.1.0-rc.6` 等——当前发布线）。更旧线上 pnpm 会在 profile 中嵌套安装第二份 seam 包，错误分类会降级（跨副本 `WebError`）；可在 profile 目录执行 `npm ls @deepseek-ai/dsh-web` 检查。
-- Firecrawl API 密钥。可在 [firecrawl.dev](https://firecrawl.dev) 获取。
+- DeepSeek Harness 安装在官方包 `0.2.0-rc.2` 线上（本插件 peer 依赖 `@deepseek-ai/dsh-web ^0.2.0-rc.2` 等——当前发布线）。更旧线上 pnpm 会在 profile 中嵌套安装第二份 seam 包，错误分类会降级（跨副本 `WebError`）；可在 profile 目录执行 `npm ls @deepseek-ai/dsh-web` 检查。
+- Firecrawl API 密钥。可在 [firecrawl.dev](https://firecrawl.dev) 获取；也可以把 `baseURL` 指向自托管实例（如 `http://localhost:3002`，该实例以 `USE_DB_AUTHENTICATION=false` 运行时无需密钥）。
 
 ## 安装
 

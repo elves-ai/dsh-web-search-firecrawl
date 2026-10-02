@@ -2,35 +2,26 @@
  * `@elves-ai/dsh-web-search-firecrawl`: registers a Firecrawl-backed `WebSearchProvider`
  * with `ctx.web`. A function/namespace plugin (NOT a default-export service):
  * a search provider does not own the `ctx.web` key — it registers INTO the
- * seam's provider registry, exactly as `@deepseek-ai/dsh-llm-deepseek`
- * registers an adapter into `ctx.llm`. The key is owned by `@deepseek-ai/dsh-web`.
+ * seam's provider registry.
  *
- * The provider's user-facing configuration lives in the DSH Settings page
- * ("Firecrawl" section). The host registers the `web-search-firecrawl`
- * settings namespace with the settings seam; the browser half edits it
- * through the plugin's own fenced `/firecrawl/api` route. Environment and
- * bundle-entry values remain available as fallback/composition layers.
+ * 0.2.0-rc.2 port: the Host settings surface is now `SettingsForms`
+ * (volatile `Config` + `configForms.get(entryId)` on the client), so this
+ * plugin no longer ships its own fenced `/firecrawl/api` route and no longer
+ * embeds a DeepSeek fallback — it is a pure Firecrawl provider.
  *
  * @module @elves-ai/dsh-web-search-firecrawl
  */
 
-import type { Context } from '@deepseek-ai/cordis'
+import type { Context, Volatile } from '@deepseek-ai/cordis'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
-import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-web'
-import { createDeepSeekSearchProvider } from './deepseek-provider.ts'
 import {
   FIRECRAWL_DEFAULT_BASE_URL,
   FIRECRAWL_DEFAULT_MAX_SNIPPET_CHARS,
   FirecrawlSearchProvider,
   type FirecrawlSearchProviderOptions,
 } from './provider.ts'
-import { registerFirecrawlSettingsRoutes } from './settings-routes.ts'
-import {
-  FIRECRAWL_SETTINGS_NAMESPACE,
-  type FirecrawlSettings,
-} from './settings-shared.ts'
 
 export {
   FIRECRAWL_DEFAULT_BASE_URL,
@@ -39,8 +30,6 @@ export {
   FirecrawlSearchProvider,
 } from './provider.ts'
 export type { FirecrawlSearchProviderOptions } from './provider.ts'
-export { FIRECRAWL_SETTINGS_NAMESPACE } from './settings-shared.ts'
-export type { FirecrawlSettings } from './settings-shared.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-search-firecrawl'
@@ -49,32 +38,41 @@ export const name = 'web-search-firecrawl'
 export const inject = ['web']
 
 /**
- * Plugin config (all optional — `apply` fills env-var and constant defaults).
- * This same shape is registered as the `web-search-firecrawl` settings
- * namespace, so these values are also the composition/base layer under the
- * Firecrawl settings page.
+ * Plugin config. Every field is `.volatile()`: the 0.2.0-rc.2 settings seam
+ * projects volatile fields into live forms addressed by the profile entry id,
+ * so the Settings page edits this entry directly — no custom namespace, no
+ * custom route. The interface names the Volatile refs cordis resolves; the
+ * schema below is the source of truth for optionality.
  */
-export type Config = FirecrawlSettings
+export interface Config {
+  /** Firecrawl API key literal; blank falls back to `$FIRECRAWL_API_KEY`. */
+  apiKey: Volatile<string | undefined>
+  /** Endpoint base; `/v1/search` is appended. */
+  baseURL: Volatile<string | undefined>
+  /** Default result count when a request carries no `maxResults`. */
+  limit: Volatile<number | undefined>
+  /** Upper bound on characters kept from one `description` when mapping `snippet`. */
+  maxSnippetChars: Volatile<number>
+}
 
-export const Config: z<Config> = z.object({
-  // Settings-page master switch: off delegates the configured `firecrawl`
-  // provider to the original DeepSeek search route.
-  useFirecrawl: z.boolean().default(true),
-  // The settings page edits this write-only: `role('secret')` keeps the
-  // literal out of every settings response. `describe({ redactSecrets: true })`
-  // reports only whether a value is configured.
-  apiKey: z.string().role('secret'),
-  baseURL: z.string().default(FIRECRAWL_DEFAULT_BASE_URL),
-  limit: z.number().step(1).min(1),
-  maxSnippetChars: z.number().step(1).min(1).default(FIRECRAWL_DEFAULT_MAX_SNIPPET_CHARS),
+export const Config = z.object({
+  // `role('secret')` keeps the literal out of every settings response; the
+  // page only learns whether a value is set.
+  apiKey: z.string().role('secret').volatile(),
+  baseURL: z.string().default(FIRECRAWL_DEFAULT_BASE_URL).volatile(),
+  limit: z.number().step(1).min(1).volatile(),
+  maxSnippetChars: z.number().step(1).min(1).default(FIRECRAWL_DEFAULT_MAX_SNIPPET_CHARS).volatile(),
 })
 
 /**
- * Resolve one settings section into the options the already-registered
- * provider serves its next search with. A non-empty settings `apiKey` wins;
- * otherwise the provider keeps its historical `$FIRECRAWL_API_KEY` fallback.
+ * Resolve one live config snapshot into the options the already-registered
+ * provider serves its next search with. A non-empty literal `apiKey` wins;
+ * otherwise the provider keeps its `$FIRECRAWL_API_KEY` fallback.
  */
-export function resolveFirecrawlOptions(ctx: Context, config: Config): FirecrawlSearchProviderOptions {
+export function resolveFirecrawlOptions(
+  ctx: Context,
+  config: { apiKey?: string; baseURL?: string; limit?: number; maxSnippetChars?: number },
+): FirecrawlSearchProviderOptions {
   const literalApiKey = typeof config.apiKey === 'string' && config.apiKey.trim().length > 0
     ? config.apiKey.trim()
     : ''
@@ -86,43 +84,20 @@ export function resolveFirecrawlOptions(ctx: Context, config: Config): Firecrawl
     apiKey: literalApiKey.length > 0 ? literalApiKey : envApiKey,
     baseURL,
     maxSnippetChars: config.maxSnippetChars ?? FIRECRAWL_DEFAULT_MAX_SNIPPET_CHARS,
-    useFirecrawl: config.useFirecrawl ?? true,
     ...config.limit !== undefined ? { limit: config.limit } : {},
   }
 }
 
 /** Register the Firecrawl search provider with `ctx.web`. */
-export function apply(ctx: Context, config: Config = {}): void {
-  let current: () => Config = () => config
-
-  // The provider object is registered once; settings commits mutate its
-  // options in place, so `ctx.web` selection never flickers or needs a
-  // re-registration when the user saves the settings page.
-  // The fallback carries the ORIGINAL DeepSeek search implementation. While
-  // `useFirecrawl` is off, the registered `firecrawl` provider delegates to
-  // it, so the model continues using the shipped search route and the
-  // settings-page switch works live (no restart or bundle re-composition).
-  const deepSeekProvider = createDeepSeekSearchProvider(ctx)
-  const providerOptions = (): FirecrawlSearchProviderOptions => ({
-    ...resolveFirecrawlOptions(ctx, current()),
-    fallback: deepSeekProvider,
-  })
-  const provider = new FirecrawlSearchProvider(providerOptions())
+export function apply(ctx: Context, config: Config): void {
+  // The provider object is registered once; the thunk snapshots the volatile
+  // refs per operation so a settings commit reaches the next search without a
+  // re-registration or a restart.
+  const provider = new FirecrawlSearchProvider(() => resolveFirecrawlOptions(ctx, {
+    apiKey: config.apiKey.get(),
+    baseURL: config.baseURL.get(),
+    limit: config.limit.get(),
+    maxSnippetChars: config.maxSnippetChars.get(),
+  }))
   ctx.web.registerSearchProvider(provider)
-
-  // Canonical optional-settings wiring: while the settings service is
-  // mounted, register the namespace with the bundle/profile entry as its
-  // base layer and point the source thunk at the resolved scope. A settings
-  // commit reaches the next search; without the service the composition
-  // entry keeps working exactly as before.
-  installSettingsSection(ctx, settingsNamespace(FIRECRAWL_SETTINGS_NAMESPACE), Config, config, {
-    setSource: (source) => { current = source },
-    onChange: () => { provider.setOptions(providerOptions()) },
-  })
-
-  // The browser settings page reaches this namespace through the plugin's
-  // own fenced route (the settings RPC domain only serves allowlisted
-  // namespaces). Optional: the provider stays available in webless
-  // deployments, where the settings page has no route to call.
-  registerFirecrawlSettingsRoutes(ctx)
 }

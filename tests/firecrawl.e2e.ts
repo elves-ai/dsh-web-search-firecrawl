@@ -11,11 +11,11 @@ const maybe = apiKey !== undefined && apiKey.length > 0 ? describe : describe.sk
 
 maybe('FirecrawlSearchProvider real API', () => {
   it('returns sources for a live query', async () => {
-    const provider = new FirecrawlSearchProvider({
+    const provider = new FirecrawlSearchProvider(() => ({
       apiKey: apiKey!,
       baseURL: process.env.FIRECRAWL_BASE_URL ?? FIRECRAWL_DEFAULT_BASE_URL,
       maxSnippetChars: FIRECRAWL_DEFAULT_MAX_SNIPPET_CHARS,
-    })
+    }))
     const result = await provider.search({ query: 'DeepSeek Harness', maxResults: 5 })
     expect(result.sources.length).toBeGreaterThan(0)
     for (const source of result.sources) expect(source.url).toMatch(/^https?:\/\//)
