@@ -1,21 +1,10 @@
-/**
- * Embedded fallback to the original DeepSeek web-search provider.
- *
- * The Firecrawl plugin is mounted as the configured `web.searchProvider`
- * (`firecrawl`). A settings-page switch can turn Firecrawl off; instead of
- * making the configured provider unavailable (which would fail every search),
- * the Firecrawl provider delegates to this DeepSeekSearchProvider instance —
- * the same implementation the shipped `web-search-deepseek` row registers.
- * Its endpoint/model/limits resolve from the official `web-search-deepseek`
- * settings namespace when that row is mounted, so the switch behaves like the
- * original provider, not a simplified copy.
- * @module @elves-ai/dsh-web-search-firecrawl/deepseek-provider
- */
-
+/** Embedded official DeepSeek search implementation used when Firecrawl is disabled. */
 import type { Context } from '@deepseek-ai/cordis'
-import { credentialRef, type CredentialRef } from '@deepseek-ai/dsh-credentials'
+import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
-import { settingsNamespace, type SettingsNamespace } from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/dsh-agent'
+import type {} from '@deepseek-ai/dsh-deepseek-account'
 import {
   DeepSeekSearchProvider,
   DEEPSEEK_DEFAULT_API_VERSION,
@@ -27,56 +16,51 @@ import {
   type DeepSeekSearchProviderOptions,
 } from '@deepseek-ai/dsh-web-search-deepseek'
 
-const DEFAULT_API_KEY_ENV = 'DEEPSEEK_API_KEY'
-const SEARCH_BASE_URL_ENV = 'DEEPSEEK_SEARCH_BASE_URL'
-const DEEPSEEK_SETTINGS_NAMESPACE: SettingsNamespace = settingsNamespace('web-search-deepseek')
+/** Plain values projected by the official provider's volatile Config schema. */
+type DeepSeekSettings = { [K in keyof DeepSeekConfig]?: ReturnType<DeepSeekConfig[K]['get']> }
 
-/** Credential-resolution face of `ctx.credentials` (the seam itself is optional). */
-interface CredentialFace {
-  resolve(ref: CredentialRef): Promise<{ value: string } | undefined>
+/** Read the current official provider entry, without redacting its in-process credentials. */
+function readDeepSeekConfig(ctx: Context): DeepSeekSettings {
+  const section = ctx.get('settings')?.describe().find(row => row.ns === 'web-search-deepseek')?.value
+  return section === undefined ? {} : section as DeepSeekSettings
 }
 
-/** Read the original provider's resolved settings section, when it is mounted. */
-function readDeepSeekConfig(ctx: Context): DeepSeekConfig | undefined {
-  const settings = ctx.get('settings') as { get(ns: SettingsNamespace): unknown } | undefined
-  const section = settings?.get(DEEPSEEK_SETTINGS_NAMESPACE)
-  return section !== null && typeof section === 'object' ? section as DeepSeekConfig : undefined
-}
-
-/** Resolve options for the original DeepSeek search provider. */
+/** Resolve credentials, account routing, and current official provider settings per operation. */
 function resolveDeepSeekOptions(ctx: Context): DeepSeekSearchProviderOptions {
-  const config = readDeepSeekConfig(ctx) ?? {}
-  const apiKeyEnv = credentialRef(config.apiKeyEnv ?? DEFAULT_API_KEY_ENV)
-  const literalApiKey = typeof config.apiKey === 'string' && config.apiKey.length > 0
-    ? config.apiKey
-    : undefined
-  const credentials = ctx.get('credentials') as CredentialFace | undefined
+  const config = readDeepSeekConfig(ctx)
+  const apiKeyEnv = credentialRef(config.apiKeyEnv ?? 'DEEPSEEK_API_KEY')
+  const literalApiKey = config.apiKey !== undefined && config.apiKey.length > 0 ? config.apiKey : undefined
   return {
     ...literalApiKey === undefined ? {} : { apiKey: literalApiKey },
+    resolveAccountToken: async (endpoint) => {
+      const provider = ctx.get('agents')?.currentInitiator()?.session.requestContext()?.provider
+      if (provider !== 'deepseek-account') return undefined
+      return ctx.get('deepseekAccount')?.resolveToken(endpoint)
+    },
     resolveApiKey: async () => {
-      if (credentials !== undefined) {
-        const resolved = await credentials.resolve(apiKeyEnv)
-        if (resolved !== undefined && resolved.value.length > 0) return resolved.value
-      }
-      // Without the credentials seam the environment is the credential plane.
+      const credentials = ctx.get('credentials')
+      if (credentials !== undefined) return (await credentials.resolve(apiKeyEnv))?.value
       const ambient = launchEnvironmentOf(ctx).get(apiKeyEnv)
       return ambient !== undefined && ambient.value.length > 0 ? ambient.value : undefined
     },
     apiKeyEnv,
     baseURL: config.baseURL
-      ?? launchEnvironmentOf(ctx).get(SEARCH_BASE_URL_ENV)?.value
+      ?? launchEnvironmentOf(ctx).get('DEEPSEEK_SEARCH_BASE_URL')?.value
       ?? DEEPSEEK_DEFAULT_BASE_URL,
     model: config.model ?? DEEPSEEK_DEFAULT_MODEL,
     apiVersion: config.apiVersion ?? DEEPSEEK_DEFAULT_API_VERSION,
     maxTokens: config.maxTokens ?? DEEPSEEK_DEFAULT_MAX_TOKENS,
     maxUses: config.maxUses ?? DEEPSEEK_DEFAULT_MAX_USES,
+    recordRequest: (request) => {
+      ctx.get('agents')?.currentInitiator()?.session.append('web/deepseek-search-llm-request', request)
+    },
   }
 }
 
 /**
- * Create the fallback provider used while the settings-page switch is off.
- * @param ctx - plugin context (resolves settings/credentials/env per search).
- * @returns a DeepSeek-backed `WebSearchProvider`.
+ * Create the fallback with the official account authentication and request logging hooks.
+ * @param ctx - Plugin context supplying settings, credentials, and the initiating Session.
+ * @returns A DeepSeek-backed search provider resolving options for each operation.
  */
 export function createDeepSeekSearchProvider(ctx: Context): DeepSeekSearchProvider {
   return new DeepSeekSearchProvider(() => resolveDeepSeekOptions(ctx))

@@ -1,12 +1,4 @@
-/**
- * Shared "Firecrawl configuration" vocabulary (types + constants), consumed by
- * BOTH halves: the host registers a settings namespace with a schemastery
- * schema over these values, and the settings page in the browser edits them
- * through the plugin's own fenced `/firecrawl/api` route. Kept free of
- * schemastery and `@deepseek-ai/dsh-settings` so the browser bundle never
- * pulls the host-only settings runtime in.
- * @module @elves-ai/dsh-web-search-firecrawl/settings-shared
- */
+/** Shared Firecrawl configuration literals; no Host runtime dependencies. */
 
 /** User-settings namespace carrying the Firecrawl provider configuration. */
 export const FIRECRAWL_SETTINGS_NAMESPACE = 'web-search-firecrawl'
@@ -48,7 +40,7 @@ export interface FirecrawlSettings {
   maxSnippetChars?: number
 }
 
-/** Schema-default fallbacks used by the client while the settings route is unavailable. */
+/** Schema-default fallbacks used by the client before settings have loaded. */
 export const FIRECRAWL_SETTINGS_DEFAULTS = {
   useFirecrawl: true,
   apiKey: '',

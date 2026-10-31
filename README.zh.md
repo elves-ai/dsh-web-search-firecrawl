@@ -2,17 +2,15 @@
 
 [English](README.md) | 中文
 
-![DSH 设置中的 Firecrawl 插件页面](docs/firecrawl-settings.png)
-
 由 [Firecrawl](https://firecrawl.dev) 支持的搜索提供方，用于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 web 能力 seam（`ctx.web`）：让内置的 `web_search` 工具走 Firecrawl 搜索 API，而不是随产品附带的 DeepSeek 路由。
 
 本插件是一个 Cordis 函数插件，向 seam 注册 `WebSearchProvider`（`id: firecrawl`）——它不拥有 `ctx.web`，也不注册面向模型的工具（工具 schema 仍属于 `@deepseek-ai/dsh-tool-web`）。它调用 Firecrawl 的 `POST /v1/search` 端点，把扁平 `data[]` 映射为 seam 规范化的 `WebSearchResult`。
 
-API 密钥在 **DSH 设置页的「Firecrawl」页面**中配置；同时保留 `$FIRECRAWL_API_KEY` 作为兼容性回退。
+API 密钥在 **DSH「插件 → Firecrawl 插件详情」**中配置，不再占用独立的设置导航项；浅色和深色主题均跟随 Harness 的语义色变量。保留 `$FIRECRAWL_API_KEY` 作为兼容性回退。
 
 ## 环境要求
 
-- DeepSeek Harness 安装在官方包 `0.1.0-rc.6` 线上（本插件 peer 依赖 `@deepseek-ai/dsh-web ^0.1.0-rc.6` 等——当前发布线）。更旧线上 pnpm 会在 profile 中嵌套安装第二份 seam 包，错误分类会降级（跨副本 `WebError`）；可在 profile 目录执行 `npm ls @deepseek-ai/dsh-web` 检查。
+- DeepSeek Harness 官方包 `0.2.1-rc.5` 发布线，Cordis `4.0.5`、Schemastery `3.18.5`，Node.js `^22.19.0 || >=24.0.0`。不兼容旧的 `0.1.x` 配置 API；升级说明见[适配指南](docs/upgrading-0.2.md)。请勿在同一 profile 中混装两条 Harness 发布线；可用 `npm ls @deepseek-ai/dsh-web` 检查。
 - Firecrawl API 密钥。可在 [firecrawl.dev](https://firecrawl.dev) 获取。
 
 ## 安装
@@ -31,7 +29,7 @@ dsh plugin --profile web add @elves-ai/dsh-web-search-firecrawl@latest
 pnpm dsh plugin --profile web add @elves-ai/dsh-web-search-firecrawl@latest
 ```
 
-`dsh plugin` 会在 profile 目录内转发给 pnpm，并自动把 bundle 追加到 profile 的层叠列表。该 bundle patch 插入 `web-search-firecrawl` 插件行，并把 `web` seam 行切换为 `searchProvider: firecrawl`（替换 base bundle 的 `deepseek-official`）。
+`dsh plugin` 会在 profile 目录内转发给 pnpm，并自动把 bundle 追加到 profile 的层叠列表。该 bundle patch 插入 `web-search-firecrawl` 插件行，并把 `web` seam 行切换为 `searchProvider: firecrawl`（替换 base bundle 的 `deepseek-official`），并保留 `fetchProvider: http`，避免影响网页抓取。
 
 安装后**重启 `dsh web`**，然后硬刷新页面（Cmd/Ctrl+Shift+R）加载浏览器半的设置页：
 
@@ -39,9 +37,9 @@ pnpm dsh plugin --profile web add @elves-ai/dsh-web-search-firecrawl@latest
 dsh web
 ```
 
-验证：打开 DSH 设置页应能看到 **Firecrawl** 页面；在会话中让 agent 执行一次网页搜索，请求会走 Firecrawl。密钥缺失时搜索以 `WEB_PROVIDER_CONFIGURED_UNAVAILABLE` 失败。
+验证：打开 **插件 → Firecrawl 插件详情** 应能看到配置表单；在会话中让 agent 执行一次网页搜索，请求会走 Firecrawl。密钥缺失时搜索以 `WEB_PROVIDER_CONFIGURED_UNAVAILABLE` 失败。
 
-想保留 DeepSeek 搜索为默认、仅按实例启用 Firecrawl：在你自己的 profile `cordis.patch.yml` 中改写 `web` 行即可——每行最后一次写入生效。base bundle 固定了 `searchProvider: deepseek-official`，因此 `$DSH_WEB_SEARCH_PROVIDER` 只在 `web` 行未设置 `searchProvider` 时生效：用环境变量选择时把 `web` 行改写为空 config（`- id: web` + `config: {}`），要固定 DeepSeek 则写 `searchProvider: deepseek-official`。
+想保留 DeepSeek 搜索为默认、仅按实例启用 Firecrawl：在你自己的 profile `cordis.patch.yml` 中改写 `web` 行即可——每行最后一次写入生效。base bundle 固定了 `searchProvider: deepseek-official`，因此 `$DSH_WEB_SEARCH_PROVIDER` 只在 `web` 行未设置 `searchProvider` 时生效：用环境变量选择时把 `web` 行改写为仅保留抓取选择的 config（`- id: web` + `config: { fetchProvider: http }`），要固定 DeepSeek 则写 `searchProvider: deepseek-official`。
 
 ## 更新插件
 
@@ -79,21 +77,21 @@ pnpm dsh plugin --profile web remove @elves-ai/dsh-web-search-firecrawl
 
 ## 切换搜索提供方
 
-安装本插件后，`web` seam 的 `searchProvider` 会切到 `firecrawl`，因此默认会替换原版网页搜索。打开 **DSH 设置 → Firecrawl** 后，页面顶部的「**使用 Firecrawl**」开关可以在两者之间实时切换：
+安装本插件后，`web` seam 的 `searchProvider` 会切到 `firecrawl`，因此默认会替换原版网页搜索。打开 **插件 → Firecrawl 插件详情** 后，页面顶部的「**使用 Firecrawl**」开关可以在两者之间实时切换：
 
 - **开（默认）**：使用 Firecrawl `POST /v1/search`。
 - **关**：`firecrawl` provider 会把请求委托给原版 DeepSeek 搜索实现，模型继续走随产品附带的 DeepSeek 搜索路由；DeepSeek 的端点、模型等仍从原版的 `web-search-deepseek` 设置段解析。
 
-切换立即生效，无需重启；Firecrawl 的 API Key 和请求参数在关闭时保留，下次打开开关继续使用。
+DeepSeek 回退沿用官方实现的账号认证、凭据解析和 `web/deepseek-search-llm-request` 会话日志。切换立即生效，无需重启；Firecrawl 的 API Key 和请求参数在关闭时保留，下次打开开关继续使用。
 
 ## 配置 API 密钥
 
-打开 **DSH 设置 → Firecrawl**：
+打开 **插件 → Firecrawl 插件详情**：
 
 1. 在 **API Key** 输入框粘贴 `fc-...`，点击保存。输入框旁的眼睛按钮可在当前输入过程中切换明文显示/隐藏。
-2. 密钥以 `role('secret')` 写入设置文档：任何接口响应都不会回显已保存的字面值，页面只显示「已配置 / 未配置」。
-3. **留空保存表示保持当前密钥**；点击「清除」可删除已保存的密钥。
-4. 保存后**立即生效**：已注册的 provider 会在下一次搜索使用新配置，无需重启。
+2. 密钥以 `role('secret')` 写入 profile 的 `cordis.patch.yml`：任何接口响应都不会回显已保存的字面值，页面只显示「已配置 / 未配置」。
+3. **留空保存表示保持当前密钥**；点击「清除」会移除用户覆盖、恢复组合层值；组合层或环境变量仍有密钥时仍可搜索。
+4. 保存后**立即生效**：Loader 更新 `Volatile` 引用，已注册的 provider 会在下一次搜索使用新配置，无需重启。
 
 如果没有在设置页填写密钥，插件仍按兼容方式回退到 `$FIRECRAWL_API_KEY`：
 
@@ -112,7 +110,7 @@ dsh --profile web
 | `limit` | （未设置） | 请求不含 `maxResults` 时使用的默认结果数。留空时不发送默认值。必须是正整数。 |
 | `maxSnippetChars` | `600` | 将单个 `description` 映射为 `snippet` 时保留的字符上限。必须是正整数。 |
 
-所有字段都可以在设置页修改。插件 bundle 配置仍然是「base 层」：设置页用户层叠加其上，因此 profile 中可以只写需要固定的字段：
+所有字段均通过 Harness 的标准、已认证 settings Remote API 修改，不再注册独立的 `/firecrawl/api` HTTP 接口。插件的 `Config` schema 自动投影为设置表单；每个字段声明为 `.volatile()`，保存时不重挂载 provider。bundle 配置是继承层，profile 的 `cordis.patch.yml` 是覆盖层：
 
 ```yaml
 # profile cordis.patch.yml（可选，通常无需配置）
@@ -144,6 +142,7 @@ pnpm run typecheck
 pnpm test                            # 单元测试（不联网）
 FIRECRAWL_API_KEY=... pnpm run test:e2e  # 真实 API 冒烟，无密钥时自动跳过
 pnpm run build                       # 产出 lib/（ESM host）+ lib/client.js（浏览器半）+ lib/types/（d.ts）
+pnpm run test:built                  # 验证构建后的 Host 入口和浏览器模块工厂
 ```
 
 ## 许可证

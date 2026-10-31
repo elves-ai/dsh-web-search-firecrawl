@@ -6,7 +6,7 @@
 # (patch semantics are replace-per-field, last write wins per row).
 #
 # The API key and a live "use Firecrawl / original DeepSeek" switch are
-# configured from the DSH Settings page ("Firecrawl" section). The plugin also
+# configured from Plugins → Firecrawl plugin details. The plugin also
 # falls back to `$FIRECRAWL_API_KEY` for compatibility. Never commit a key.
 
 - insert:
@@ -17,3 +17,5 @@
   name: '@deepseek-ai/dsh-web'
   config:
     searchProvider: firecrawl
+    # Replacing config must preserve the base bundle's fetch selection.
+    fetchProvider: http

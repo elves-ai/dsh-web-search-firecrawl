@@ -28,7 +28,7 @@ export {
 export const FIRECRAWL_PROVIDER_ID = 'firecrawl'
 
 /** Attribution header sent on every request. Bump with the package version. */
-const USER_AGENT = 'dsh-web-search-firecrawl/0.1.1'
+const USER_AGENT = 'dsh-web-search-firecrawl/1.1.0'
 
 /** Resolved provider options (the plugin's `apply` supplies env-var and constant defaults). */
 export interface FirecrawlSearchProviderOptions {
@@ -105,7 +105,12 @@ export function mapFirecrawlResponse(response: FirecrawlSearchResponse, maxSnipp
 export class FirecrawlSearchProvider implements WebSearchProvider {
   readonly id = FIRECRAWL_PROVIDER_ID
 
-  constructor(private options: FirecrawlSearchProviderOptions) {}
+  /** @param options - Fixed options or a resolver read once at each operation's entry. */
+  constructor(private options: FirecrawlSearchProviderOptions | (() => FirecrawlSearchProviderOptions)) {}
+
+  private currentOptions(): FirecrawlSearchProviderOptions {
+    return typeof this.options === 'function' ? this.options() : this.options
+  }
 
   /**
    * Replace the options used by the next `available()` / `search()` call.
@@ -118,7 +123,7 @@ export class FirecrawlSearchProvider implements WebSearchProvider {
   }
 
   available(): boolean {
-    const options = this.options
+    const options = this.currentOptions()
     if (options.useFirecrawl === false) {
       return options.fallback?.available() ?? false
     }
@@ -129,7 +134,7 @@ export class FirecrawlSearchProvider implements WebSearchProvider {
   }
 
   async search(request: WebSearchRequest, signal?: AbortSignal): Promise<WebSearchResult> {
-    const options = this.options
+    const options = this.currentOptions()
     if (options.useFirecrawl === false) {
       const fallback = options.fallback
       if (fallback === undefined) {

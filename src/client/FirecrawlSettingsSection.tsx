@@ -1,5 +1,5 @@
 /**
- * The "Firecrawl" settings page contributed to the DSH Settings shell.
+ * Firecrawl configuration rendered inside its plugin detail page.
  *
  * The API key is write-only in the wire direction: the host schema marks it
  * `role('secret')`, so this page never receives the literal. It shows
@@ -9,9 +9,9 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
-// Type-only: pulls the settings shell's SlotMap merge for 'settings.section'.
-import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import { Button, Input, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
+// Type-only: the plugin manager owns the bundle configuration slot.
+import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   FIRECRAWL_DEFAULT_BASE_URL,
@@ -19,16 +19,15 @@ import {
 } from '../settings-shared.ts'
 import {
   FirecrawlSettingsApiError,
-  getFirecrawlSettings,
   isApiKeyConfigured,
-  mutateFirecrawlSettings,
+  type FirecrawlSettingsApi,
   type FirecrawlSettingsOp,
   type FirecrawlSettingsView,
 } from './api.ts'
 import css from './FirecrawlSettingsSection.module.css'
 
-/** Props the settings shell binds for this section. */
-export type FirecrawlSettingsSectionProps = PropsRuntime<'settings.section'>
+/** Props the plugin manager binds for the bundle configuration. */
+export type FirecrawlSettingsSectionProps = PropsRuntime<'plugins.bundle.config'> & { settingsApi: FirecrawlSettingsApi }
 
 /** Local drafts for the four settings controls. */
 interface Drafts {
@@ -69,10 +68,7 @@ function parsePositiveInteger(raw: string): number | null {
   return Number.isInteger(value) && value > 0 ? value : null
 }
 
-/**
- * Inline eye icon used by the API-key reveal toggle (no eye glyph ships in
- * the rc.6 primitives icon set).
- */
+/** Inline eye icon used by the API-key reveal toggle. */
 function EyeIcon({ crossed }: { crossed: boolean }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -91,46 +87,26 @@ function EyeIcon({ crossed }: { crossed: boolean }) {
   )
 }
 
-/**
- * Native-checkbox switch with the DSH settings-row visual treatment.
- */
-function ToggleSwitch({ checked, onChange, disabled, label }: {
-  checked: boolean
-  onChange: (next: boolean) => void
-  disabled: boolean
-  label: string
-}) {
-  return (
-    <label className={css.switch}>
-      <input
-        type="checkbox"
-        className={css.switchInput}
-        checked={checked}
-        disabled={disabled}
-        aria-label={label}
-        onChange={event => { onChange(event.currentTarget.checked) }}
-      />
-      <span className={css.switchTrack} aria-hidden="true">
-        <span className={css.switchThumb} />
-      </span>
-    </label>
-  )
-}
-
 /** Human-readable error copy for one settings-route failure. */
 function messageOf(error: unknown): string {
-  if (error instanceof FirecrawlSettingsApiError && error.code === 'settings-conflict') {
+  if (error instanceof FirecrawlSettingsApiError && error.code === 'settings/conflict') {
     return '设置已在其他窗口被修改，已重新载入；请再次保存。'
   }
   return error instanceof Error ? error.message : String(error)
 }
 
 /**
- * Render the Firecrawl settings page.
- * @param props - the runtime share of a `settings.section` entry.
+ * Render a summary or the Firecrawl configuration form.
+ * @param props - the runtime share of a `plugins.bundle.config` entry.
  * @returns the section element tree.
  */
-export function FirecrawlSettingsSection(_props: FirecrawlSettingsSectionProps) {
+export function FirecrawlSettingsSection({ view, settingsApi }: FirecrawlSettingsSectionProps) {
+  if (view === 'summary') return 'Firecrawl 搜索提供方的 API 密钥与请求参数。'
+  return <FirecrawlSettingsForm settingsApi={settingsApi} />
+}
+
+/** Editable detail content; summary rendering never starts a settings read. */
+function FirecrawlSettingsForm({ settingsApi }: { settingsApi: FirecrawlSettingsApi }) {
   const [view, setView] = useState<FirecrawlSettingsView | null>(null)
   const [drafts, setDrafts] = useState<Drafts>(INITIAL_DRAFTS)
   const [loading, setLoading] = useState(true)
@@ -143,7 +119,7 @@ export function FirecrawlSettingsSection(_props: FirecrawlSettingsSectionProps) 
     setLoading(true)
     setError(null)
     try {
-      const next = await getFirecrawlSettings()
+      const next = await settingsApi.get()
       setView(next)
       setDrafts(draftsOf(next))
     } catch (caught) {
@@ -151,11 +127,11 @@ export function FirecrawlSettingsSection(_props: FirecrawlSettingsSectionProps) 
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [settingsApi])
 
   useEffect(() => {
     let cancelled = false
-    void getFirecrawlSettings().then((next) => {
+    void settingsApi.get().then((next) => {
       if (cancelled) return
       setView(next)
       setDrafts(draftsOf(next))
@@ -166,7 +142,7 @@ export function FirecrawlSettingsSection(_props: FirecrawlSettingsSectionProps) 
       setLoading(false)
     })
     return () => { cancelled = true }
-  }, [])
+  }, [settingsApi])
 
   const applyOps = async (ops: FirecrawlSettingsOp[]): Promise<void> => {
     if (view === null || view.writable === false) return
@@ -174,7 +150,7 @@ export function FirecrawlSettingsSection(_props: FirecrawlSettingsSectionProps) 
     setError(null)
     setNotice(null)
     try {
-      const next = await mutateFirecrawlSettings(ops, view.revision)
+      const next = await settingsApi.mutate(ops, view.revision)
       setView(next)
       setDrafts({ ...draftsOf(next), apiKey: '' })
       setNotice('已保存，新配置立即用于下一次搜索。')
@@ -182,11 +158,15 @@ export function FirecrawlSettingsSection(_props: FirecrawlSettingsSectionProps) 
       setError(messageOf(caught))
       // A conflict means another surface committed since this page read the
       // revision; adopt the fresh redacted view so the next save can proceed.
-      if (caught instanceof FirecrawlSettingsApiError && caught.code === 'settings-conflict') {
-        void getFirecrawlSettings().then((next) => {
+      if (caught instanceof FirecrawlSettingsApiError && caught.code === 'settings/conflict') {
+        try {
+          const next = await settingsApi.get()
           setView(next)
           setDrafts(draftsOf(next))
-        }).catch(() => {})
+        } catch (reloadError) {
+          setError(messageOf(reloadError))
+          setView(null)
+        }
       }
     } finally {
       setSaving(false)
@@ -254,13 +234,13 @@ export function FirecrawlSettingsSection(_props: FirecrawlSettingsSectionProps) 
       <p className={css.intro}>Firecrawl 搜索提供方的 API 密钥与请求参数。保存后立即生效。</p>
 
       <div className={css.card}>
-        <div className={css.row}>
+        <div className={`${css.row} ${css.toggleRow}`}>
           <div className={css.rowText}>
             <span className={css.title}>使用 Firecrawl</span>
             <span className={css.desc}>关闭后切换到原版 DeepSeek 网页搜索，立即生效。</span>
           </div>
           <div className={css.control}>
-            <ToggleSwitch
+            <Switch
               checked={drafts.useFirecrawl}
               disabled={disabled}
               label="使用 Firecrawl"
@@ -272,10 +252,11 @@ export function FirecrawlSettingsSection(_props: FirecrawlSettingsSectionProps) 
         <div className={css.row}>
           <div className={css.rowText}>
             <label className={css.title} htmlFor="firecrawl-api-key">API Key</label>
-            <span className={css.desc}>写入设置文档的密钥不会回显；留空保存表示保持当前值，未配置时回退 $FIRECRAWL_API_KEY。</span>
+            <span className={css.desc}>写入 profile 配置的密钥不会回显；留空保存表示保持当前值，未配置时回退 $FIRECRAWL_API_KEY。</span>
           </div>
-          <div className={css.control}>
+          <div className={`${css.control} ${css.keyControl}`}>
             <Input
+              className={css.input}
               id="firecrawl-api-key"
               type={showApiKey ? 'text' : 'password'}
               autoComplete="off"
@@ -311,6 +292,7 @@ export function FirecrawlSettingsSection(_props: FirecrawlSettingsSectionProps) 
           </div>
           <div className={css.control}>
             <Input
+              className={css.input}
               id="firecrawl-base-url"
               type="text"
               value={drafts.baseURL}
@@ -328,6 +310,7 @@ export function FirecrawlSettingsSection(_props: FirecrawlSettingsSectionProps) 
           </div>
           <div className={css.control}>
             <Input
+              className={css.input}
               id="firecrawl-limit"
               type="text"
               inputMode="numeric"
@@ -346,6 +329,7 @@ export function FirecrawlSettingsSection(_props: FirecrawlSettingsSectionProps) 
           </div>
           <div className={css.control}>
             <Input
+              className={css.input}
               id="firecrawl-max-snippet-chars"
               type="text"
               inputMode="numeric"

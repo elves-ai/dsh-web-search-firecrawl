@@ -1,30 +1,15 @@
-/**
- * Package-owned invariant companion for `@elves-ai/dsh-web-search-firecrawl`.
- * @module @elves-ai/dsh-web-search-firecrawl/invariant
- */
-
-/* jscpd:ignore-start */
+/** Deprecated companion entry retained for profiles created before Harness removed runtime invariants. */
 import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
-
-const PACKAGE_NAME = '@elves-ai/dsh-web-search-firecrawl'
 
 /** Cordis companion plugin name. */
 export const name = 'web-search-firecrawl-invariant'
-/** Service required before the companion can reserve package ownership. */
-export const inject = ['invariants']
+/** No invariant service is required on current Harness releases. */
+export const inject: string[] = []
 
 /**
- * No runtime invariant: this package exposes no independent event sequence or mutable data relation
- * beyond contracts enforced at its owning seam.
+ * Keep legacy companion mounts loadable without the removed dsh-invariants package.
+ * @param _ctx - Legacy companion context.
+ * @returns An inert disposer.
+ * @deprecated Remove this companion from the profile; the provider needs no companion.
  */
-const install: InvariantInstaller = () => {}
-
-/**
- * Register this package's invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
-export const apply = (ctx: Context): Promise<() => void> =>
-  Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
-/* jscpd:ignore-end */
+export const apply = (_ctx: Context): Promise<() => void> => Promise.resolve(() => {})

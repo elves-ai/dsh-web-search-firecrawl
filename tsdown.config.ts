@@ -31,12 +31,9 @@ const CLIENT_EXTERNALS = [
   'react/jsx-runtime',
   'react-dom',
   'react-dom/client',
-  'cordis',
+  '@deepseek-ai/cordis',
   '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-web-react',
   '@deepseek-ai/dsh-client-ui-primitives',
-  '@deepseek-ai/dsh-client-schema-form',
-  '@deepseek-ai/dsh-client-runtime/client',
 ]
 
 /** Wire/type layers a client bundle may inline. */
@@ -148,7 +145,6 @@ export default [
     dts: false,
     sourcemap: true,
     clean: false,
-    external: [...CLIENT_EXTERNALS],
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
       'import.meta.env.MODE': JSON.stringify(process.env.NODE_ENV ?? 'production'),
@@ -160,7 +156,10 @@ export default [
         conditionNames: ['browser', 'import', 'require', 'default'],
       },
     },
-    noExternal: (id: string) => (CLIENT_EXTERNALS.includes(id) ? undefined : true),
+    deps: {
+      neverBundle: (id: string) => CLIENT_EXTERNALS.includes(id),
+      alwaysBundle: (id: string) => !CLIENT_EXTERNALS.includes(id),
+    },
     plugins: [purityGatePlugin(), makeCssPlugin(PACKAGE_NAME)],
     outputOptions: {
       entryFileNames: 'client.js',

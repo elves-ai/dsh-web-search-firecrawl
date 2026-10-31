@@ -1,96 +1,60 @@
-/**
- * Client wire face for the plugin's own `/firecrawl/api` route. The host
- * calls the settings seam in-process, so the browser never depends on the
- * api-proxy allowlist that would otherwise keep third-party namespaces out.
- * @module @elves-ai/dsh-web-search-firecrawl/client/api
- */
+/** Firecrawl settings adapter over Harness's authenticated, typed Remote transport. */
+import type { Context } from '@deepseek-ai/cordis'
+import type {
+  SettingsNamespaceView,
+  SettingsPathOpView,
+} from '@deepseek-ai/dsh-api-remotes/client'
+import { FIRECRAWL_SETTINGS_NAMESPACE } from '../settings-shared.ts'
 
-/** One redacted secret slot (`set` tells whether a value is configured). */
-export interface FirecrawlSettingsSecretView {
-  path: string[]
-  set: boolean
+/** Redacted settings plus deployment writability. */
+export type FirecrawlSettingsView = SettingsNamespaceView & { writable: boolean }
+/** One path-addressed settings edit. */
+export type FirecrawlSettingsOp = SettingsPathOpView
+/** Only the supported settings operations are exposed to the page. */
+export type FirecrawlSettingsRemote = Pick<Context['remote']['settings'], 'describe' | 'mutate'>
+/** Page-facing adapter, supplied through slot injection. */
+export interface FirecrawlSettingsApi {
+  get(): Promise<FirecrawlSettingsView>
+  mutate(ops: readonly FirecrawlSettingsOp[], expectedRevision?: number): Promise<FirecrawlSettingsView>
 }
 
-/** Redacted settings view returned by `settings.get` / `settings.mutate`. */
-export interface FirecrawlSettingsView {
-  value: unknown
-  revision: number
-  base?: unknown
-  user?: unknown
-  applies: 'live' | 'restart'
-  secrets?: FirecrawlSettingsSecretView[]
-  writable: boolean
-}
-
-/** One path-addressed settings edit sent to the host route. */
-export type FirecrawlSettingsOp =
-  | { op: 'set'; path: [string]; value: unknown }
-  | { op: 'unset'; path: [string] }
-
-/** Success envelope of the Firecrawl settings route. */
-interface FirecrawlSettingsEnvelope {
-  ok: true
-  value: FirecrawlSettingsView
-}
-
-/** Failure envelope of the Firecrawl settings route. */
-interface FirecrawlSettingsFailure {
-  ok: false
-  error: { code: string; message: string }
-}
-
-/** Wire error with the route's machine code. */
+/** Typed Remote refusal mapped to page-level error handling. */
 export class FirecrawlSettingsApiError extends Error {
-  constructor(
-    readonly code: string,
-    message: string,
-  ) {
+  constructor(readonly code: string, message: string) {
     super(message)
   }
 }
 
-/** POST one method to `/firecrawl/api` and unwrap the success envelope. */
-async function post<T>(method: string, payload?: unknown): Promise<T> {
-  let response: Response
-  try {
-    response = await fetch('/firecrawl/api', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ method, payload: payload ?? {} }),
-    })
-  } catch (error) {
-    throw new FirecrawlSettingsApiError('unreachable', `无法连接 Firecrawl 设置接口：${error instanceof Error ? error.message : String(error)}`)
+/**
+ * Bind the settings Remote to the plugin's profile entry, without a separate HTTP endpoint.
+ * @param remote - Authenticated settings namespace supplied by ctx.remote.
+ * @returns Settings reader and revision-fenced writer for the custom page.
+ */
+export function createFirecrawlSettingsApi(remote: FirecrawlSettingsRemote): FirecrawlSettingsApi {
+  let writable = false
+  const get = async (): Promise<FirecrawlSettingsView> => {
+    const result = await remote.describe()
+    if (!result.ok) throw new FirecrawlSettingsApiError(result.error.code, result.error.message)
+    const view = result.value.namespaces.find(row => row.ns === FIRECRAWL_SETTINGS_NAMESPACE)
+    if (view === undefined) throw new FirecrawlSettingsApiError('settings-unavailable', 'Firecrawl 插件配置不可用。')
+    writable = result.value.writable
+    return { ...view, writable }
   }
-  let body: FirecrawlSettingsEnvelope | FirecrawlSettingsFailure
-  try {
-    body = await response.json() as FirecrawlSettingsEnvelope | FirecrawlSettingsFailure
-  } catch {
-    throw new FirecrawlSettingsApiError('unreachable', `Firecrawl 设置接口返回了无法解析的响应（HTTP ${response.status}）`)
+  return {
+    get,
+    async mutate(ops, expectedRevision) {
+      const result = await remote.mutate(FIRECRAWL_SETTINGS_NAMESPACE, [...ops], expectedRevision)
+      if (!result.ok) throw new FirecrawlSettingsApiError(result.error.code, result.error.message)
+      return { ...result.value, writable }
+    },
   }
-  if (!response.ok || !body.ok) {
-    const failure = body as FirecrawlSettingsFailure
-    throw new FirecrawlSettingsApiError(failure.error?.code ?? 'unreachable', failure.error?.message ?? `HTTP ${response.status}`)
-  }
-  return (body as FirecrawlSettingsEnvelope).value as T
 }
 
-/** Read the current redacted Firecrawl settings view. */
-export function getFirecrawlSettings(): Promise<FirecrawlSettingsView> {
-  return post<FirecrawlSettingsView>('settings.get')
-}
-
-/** Apply path ops and return the fresh redacted view. */
-export function mutateFirecrawlSettings(
-  ops: readonly FirecrawlSettingsOp[],
-  expectedRevision?: number,
-): Promise<FirecrawlSettingsView> {
-  return post<FirecrawlSettingsView>('settings.mutate', {
-    ops,
-    ...(expectedRevision === undefined ? {} : { expectedRevision }),
-  })
-}
-
-/** True when the write-only `apiKey` slot currently holds a value. */
+/**
+ * Check whether the write-only API key is configured.
+ * @param view - Redacted settings view.
+ * @returns Whether the Host reports a configured key.
+ */
 export function isApiKeyConfigured(view: FirecrawlSettingsView): boolean {
-  return (view.secrets ?? []).some(secret => secret.path.length === 1 && secret.path[0] === 'apiKey' && secret.set)
+  return view.secrets.some(secret => secret.path.length === 1 && secret.path[0] === 'apiKey' && secret.set)
 }

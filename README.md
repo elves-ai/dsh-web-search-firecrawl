@@ -2,17 +2,15 @@
 
 English | [中文](README.zh.md)
 
-![Firecrawl plugin page in DSH Settings](docs/firecrawl-settings.png)
-
 A [Firecrawl](https://firecrawl.dev)-backed search provider for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) web capability seam (`ctx.web`): it makes the built-in `web_search` tool run on Firecrawl's search API instead of the shipped DeepSeek route.
 
 The plugin is a Cordis function plugin that registers a `WebSearchProvider` (`id: firecrawl`) into the seam — it does not own `ctx.web` and does not register a model-facing tool (the tool schema stays with `@deepseek-ai/dsh-tool-web`). It calls Firecrawl's `POST /v1/search` endpoint and maps the flat `data[]` into the seam's normalized `WebSearchResult`.
 
-The API key is configured from the **Firecrawl page in DSH Settings**; `$FIRECRAWL_API_KEY` remains available as a compatibility fallback.
+The API key is configured in **Plugins → Firecrawl plugin details**, not a separate Settings navigation entry. The form follows Harness semantic colors in both light and dark themes; `$FIRECRAWL_API_KEY` remains available as a compatibility fallback.
 
 ## Requirements
 
-- A DeepSeek Harness installation on the `0.1.0-rc.6` line of the official packages (the plugin peers on `@deepseek-ai/dsh-web ^0.1.0-rc.6` and friends — the current release line). On an older line, pnpm nests a second copy of the seam into the profile and error classification degrades (cross-copy `WebError`); check from the profile directory with `npm ls @deepseek-ai/dsh-web`.
+- DeepSeek Harness official packages on the `0.2.1-rc.5` line, Cordis `4.0.5`, Schemastery `3.18.5`, and Node.js `^22.19.0 || >=24.0.0`. The old `0.1.x` configuration API is not supported; see the [upgrade guide](docs/upgrading-0.2.md). Do not mix Harness release lines in one profile; check with `npm ls @deepseek-ai/dsh-web`.
 - A Firecrawl API key. Get one at [firecrawl.dev](https://firecrawl.dev).
 
 ## Install
@@ -31,7 +29,7 @@ dsh plugin --profile web add @elves-ai/dsh-web-search-firecrawl@latest
 pnpm dsh plugin --profile web add @elves-ai/dsh-web-search-firecrawl@latest
 ```
 
-`dsh plugin` forwards to pnpm inside the profile directory and appends the bundle to the profile's layer stack automatically. The bundle patch inserts the `web-search-firecrawl` plugin row and switches the `web` seam row to `searchProvider: firecrawl` (replacing the base bundle's `deepseek-official`).
+`dsh plugin` forwards to pnpm inside the profile directory and appends the bundle to the profile's layer stack automatically. The bundle patch inserts the `web-search-firecrawl` plugin row and switches the `web` seam row to `searchProvider: firecrawl` (replacing the base bundle's `deepseek-official`), while preserving `fetchProvider: http` for page retrieval.
 
 After installing, **restart `dsh web`**, then hard-refresh the page (Cmd/Ctrl+Shift+R) so the browser half and its settings page load:
 
@@ -39,9 +37,9 @@ After installing, **restart `dsh web`**, then hard-refresh the page (Cmd/Ctrl+Sh
 dsh web
 ```
 
-Verify: the Settings dialog should show the **Firecrawl** page, and asking the agent for a web search should route through Firecrawl. Without a key, a search fails with `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`.
+Verify: **Plugins → Firecrawl plugin details** should show the configuration form, and asking the agent for a web search should route through Firecrawl. Without a key, a search fails with `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`.
 
-To keep DeepSeek search as the default and enable Firecrawl per instance instead, restate the `web` row in your profile's own `cordis.patch.yml` afterwards — the last write wins per row. The base bundle pins `searchProvider: deepseek-official`, so `$DSH_WEB_SEARCH_PROVIDER` selects the provider only when the `web` row sets no `searchProvider`: restate `web` with an empty config (`- id: web` + `config: {}`) for env selection, or with `searchProvider: deepseek-official` to pin DeepSeek.
+To keep DeepSeek search as the default and enable Firecrawl per instance instead, restate the `web` row in your profile's own `cordis.patch.yml` afterwards — the last write wins per row. The base bundle pins `searchProvider: deepseek-official`, so `$DSH_WEB_SEARCH_PROVIDER` selects the provider only when the `web` row sets no `searchProvider`: restate `web` with only its fetch selection (`- id: web` + `config: { fetchProvider: http }`) for env selection, or with `searchProvider: deepseek-official` to pin DeepSeek.
 
 ## Update
 
@@ -79,21 +77,21 @@ The command removes the package and its mount, but not settings-page values. If 
 
 ## Switching search providers
 
-Installing the plugin switches the `web` seam's `searchProvider` to `firecrawl`, so Firecrawl replaces the original web search by default. In **DSH Settings → Firecrawl**, the **Use Firecrawl** switch at the top selects between the two providers live:
+Installing the plugin switches the `web` seam's `searchProvider` to `firecrawl`, so Firecrawl replaces the original web search by default. In **Plugins → Firecrawl plugin details**, the **Use Firecrawl** switch at the top selects between the two providers live:
 
 - **On (default)**: Firecrawl `POST /v1/search` is used.
 - **Off**: the registered `firecrawl` provider delegates to the original DeepSeek search implementation, so the model keeps using the shipped DeepSeek search route; DeepSeek's endpoint/model still resolve from the original `web-search-deepseek` settings section.
 
-The switch applies immediately without a restart. Firecrawl credentials and request settings are preserved while off.
+The fallback retains the official implementation's account authentication, credential resolution, and `web/deepseek-search-llm-request` Session logging. The switch applies immediately without a restart. Firecrawl credentials and request settings are preserved while off.
 
 ## Configuring the API key
 
-Open **DSH Settings → Firecrawl**:
+Open **Plugins → Firecrawl plugin details**:
 
 1. Paste `fc-...` into the **API Key** field and save. The eye button beside the field toggles plain-text visibility for the current draft.
-2. The key is written with `role('secret')`: the saved literal never rides a response; the page only shows whether a key is configured.
-3. **Saving with the field blank keeps the current key**; use **Clear** to remove it.
-4. Changes apply **immediately** — the registered provider uses the new values on the next search, no restart required.
+2. The key is written to the profile's `cordis.patch.yml` with `role('secret')`: the saved literal never rides a response; the page only shows whether a key is configured.
+3. **Saving with the field blank keeps the current key**; use **Clear** to remove the user override and restore the composition value. A key supplied by the composition or environment remains available.
+4. Changes apply **immediately** — the Loader updates `Volatile` references and the registered provider uses the new values on the next search, no restart required.
 
 If the settings-page key is blank, the provider still falls back to `$FIRECRAWL_API_KEY`:
 
@@ -112,7 +110,7 @@ dsh --profile web
 | `limit` | (unset) | Default result count when a request carries no `maxResults`. Unset sends no default. Must be a positive integer. |
 | `maxSnippetChars` | `600` | Upper bound on characters kept from one `description` when mapping `snippet`. Must be a positive integer. |
 
-Every field is editable from the settings page. Bundle config remains the composition `base` layer under that user section, so a profile can pin only the fields it needs:
+Every field is edited through Harness's standard authenticated settings Remote API; the plugin no longer mounts a separate `/firecrawl/api` HTTP endpoint. The `Config` schema is projected automatically, and every field uses `.volatile()` so saves do not remount the provider. Bundle config is inherited beneath the profile's `cordis.patch.yml` overrides:
 
 ```yaml
 # profile cordis.patch.yml (optional; usually not needed)
@@ -144,6 +142,7 @@ pnpm run typecheck
 pnpm test                            # unit suite (no network)
 FIRECRAWL_API_KEY=... pnpm run test:e2e  # live-API smoke, self-skips without the key
 pnpm run build                       # emits lib/ (ESM host) + lib/client.js (browser) + lib/types/ (d.ts)
+pnpm run test:built                  # smoke-test built Host entries and the browser module factory
 ```
 
 ## License

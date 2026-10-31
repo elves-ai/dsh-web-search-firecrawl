@@ -40,6 +40,9 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Test built entrypoints
+        run: pnpm run test:built
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:

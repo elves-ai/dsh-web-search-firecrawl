@@ -1,27 +1,23 @@
-/**
- * Client half of `@elves-ai/dsh-web-search-firecrawl`: contributes the
- * "Firecrawl" page to the DSH Settings shell. The page reads and writes the
- * plugin's settings namespace through the host-owned `/firecrawl/api` route
- * (the settings RPC allowlist does not serve third-party namespaces).
- */
-
-// Type-only: the settings shell's SlotMap merge for 'settings.section'.
-import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+/** Browser plugin contributing Firecrawl configuration to its plugin details. */
+import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import { FirecrawlSettingsSection } from './FirecrawlSettingsSection.tsx'
+import { createFirecrawlSettingsApi } from './api.ts'
 
 /** Required services before mounting. */
-export const inject = ['slots']
+export const inject = ['slots', 'remote', 'remote.settings']
 
 /**
- * Register the Firecrawl settings section.
- * @param ctx - the browser plugin context.
+ * Register configuration inside the Firecrawl bundle detail page.
+ * @param ctx - Browser plugin context supplying the renderer and Remote settings.
  */
-export function apply(ctx: ClientContext): void {
-  ctx.slots.inject('settings.section', () => ctx.slots.register({
-    name: 'settings.section',
-    id: 'firecrawl',
-    order: 80,
-    label: () => 'Firecrawl',
+export function apply(ctx: Context): void {
+  const settingsApi = createFirecrawlSettingsApi(ctx.remote.settings)
+  ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
+    name: 'plugins.bundle.config',
+    key: '@elves-ai/dsh-web-search-firecrawl',
+    inject: () => ({ settingsApi }),
   }, FirecrawlSettingsSection))
 }

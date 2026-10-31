@@ -3,3 +3,4 @@ lib/
 *.tsbuildinfo
 .env
 .DS_Store
+.codegraph/

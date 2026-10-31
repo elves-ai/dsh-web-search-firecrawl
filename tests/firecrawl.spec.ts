@@ -1,22 +1,28 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { SettingsProvider, settingsNamespace } from '@deepseek-ai/dsh-settings'
+import Loader from '@deepseek-ai/cordis-plugin-loader'
+import type z from '@deepseek-ai/schemastery'
+import { redactSecrets } from '@deepseek-ai/dsh-settings'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import { FirecrawlSearchProvider, FIRECRAWL_PROVIDER_ID } from '../src/index.ts'
 import * as firecrawlPlugin from '../src/index.ts'
 import { mapFirecrawlResponse, mapFirecrawlResult, truncateTo } from '../src/provider.ts'
-import type { FirecrawlWebServer } from '../src/settings-routes.ts'
-import { FIRECRAWL_SETTINGS_NAMESPACE } from '../src/settings-shared.ts'
 
-/** In-memory settings provider for exercising the optional settings seam. */
-class MemorySettingsProvider extends SettingsProvider {
-  writable = true
-
-  async load(): Promise<Record<string, unknown>> {
-    return {}
+/** Mount through the real Loader so live updates exercise stable Config references. */
+async function loadedPlugin(config: Record<string, unknown> = {}) {
+  const ctx = new Context()
+  onTestFinished(() => ctx.fiber.dispose())
+  await ctx.plugin(WebRuntime, { searchProvider: FIRECRAWL_PROVIDER_ID })
+  await ctx.plugin(Loader)
+  ctx.loader.builtins.firecrawl = firecrawlPlugin
+  const id = await ctx.loader.create({ name: 'cordis:firecrawl', config })
+  const fiber = ctx.loader.resolve(id).fiber!
+  await fiber.await()
+  const update = async (next: Record<string, unknown>) => {
+    await fiber.entry!.update({ config: next })
+    await fiber.await()
   }
-
-  async persist(): Promise<void> {}
+  return { ctx, fiber, update }
 }
 
 const options = { apiKey: 'firecrawl-key', baseURL: 'https://api.firecrawl.test', maxSnippetChars: 600 }
@@ -27,6 +33,7 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
 })
 
 describe('Firecrawl result mapping', () => {
@@ -264,130 +271,61 @@ describe('FirecrawlSearchProvider original-provider fallback', () => {
   })
 })
 
-describe('web-search-firecrawl settings route', () => {
-  it('serves a redacted settings view through the fenced route', async () => {
-    const ctx = new Context()
-    // The route is registered by the plugin owner, but the webServer service is
-    // only present in web compositions; provide structural fakes for the test.
-    let capturedRoute: NonNullable<Parameters<FirecrawlWebServer['register']>[0]> | undefined
-    const server: FirecrawlWebServer = {
-      register: vi.fn((route) => {
-        capturedRoute = route
-        return () => {}
-      }),
-    }
-    ctx.provide('webServer', server)
-    ctx.provide('webRuntime', { trustedHosts: [] })
-    await ctx.plugin(WebRuntime, { searchProvider: FIRECRAWL_PROVIDER_ID })
-    await ctx.plugin(MemorySettingsProvider)
-    await ctx.plugin(firecrawlPlugin, {})
-    await ctx.settings.update(settingsNamespace(FIRECRAWL_SETTINGS_NAMESPACE), {
-      apiKey: 'route-key',
-      baseURL: 'https://route.firecrawl.test',
-    })
-    await new Promise(resolve => { setTimeout(resolve, 0) })
-    expect(server.register).toHaveBeenCalledOnce()
-    const handler = capturedRoute!.handler
-    let responseBody = ''
-    const req = {
-      method: 'POST',
-      headers: { host: '127.0.0.1:4567' },
-      async *[Symbol.asyncIterator]() {
-        yield Buffer.from(JSON.stringify({ method: 'settings.get', payload: {} }))
-      },
-    }
-    const res = {
-      writeHead: (status: number, headers: Record<string, string>) => { responseStatus = status },
-      end: (body: string) => { responseBody = body },
-    }
-    let responseStatus = 200
-    await handler(req as never, res as never)
-    expect(responseStatus).toBe(200)
-    const parsed = JSON.parse(responseBody) as { ok: boolean; value: { value: Record<string, unknown>; revision: number; secrets: Array<{ path: string[]; set: boolean }> } }
-    expect(parsed.ok).toBe(true)
-    expect(parsed.value.value).not.toHaveProperty('apiKey')
-    expect(parsed.value.secrets).toContainEqual({ path: ['apiKey'], set: true })
-
-    // The mutate path applies a path op with revision fencing and returns the
-    // fresh redacted view (secret still never rides a response).
-    const mutateReq = {
-      method: 'POST',
-      headers: { host: '127.0.0.1:4567' },
-      async *[Symbol.asyncIterator]() {
-        yield Buffer.from(JSON.stringify({
-          method: 'settings.mutate',
-          payload: {
-            ops: [{ op: 'unset', path: ['apiKey'] }],
-            expectedRevision: parsed.value.revision,
-          },
-        }))
-      },
-    }
-    let mutateStatus = 200
-    let mutateBody = ''
-    await handler(mutateReq as never, {
-      writeHead: (status: number) => { mutateStatus = status },
-      end: (body: string) => { mutateBody = body },
-    } as never)
-    expect(mutateStatus).toBe(200)
-    const mutated = JSON.parse(mutateBody) as { ok: boolean; value: { secrets: Array<{ path: string[]; set: boolean }> } }
-    expect(mutated.ok).toBe(true)
-    expect(mutated.value.secrets).toContainEqual({ path: ['apiKey'], set: false })
-    await ctx.fiber.dispose()
-  })
-})
-
-describe('web-search-firecrawl settings namespace', () => {
-  it('switches to the original DeepSeek provider when useFirecrawl is turned off', async () => {
-    const prevDeepseekKey = process.env.DEEPSEEK_API_KEY
-    process.env.DEEPSEEK_API_KEY = 'deepseek-key'
-    try {
-      const fetchMock = vi.fn(async () => jsonResponse({
-        content: [{
-          type: 'web_search_tool_result',
-          content: [{ type: 'web_search_result', url: 'https://deepseek.test', title: 'DeepSeek' }],
-        }],
-      }))
-      vi.stubGlobal('fetch', fetchMock)
-      const ctx = new Context()
-      await ctx.plugin(WebRuntime, { searchProvider: FIRECRAWL_PROVIDER_ID })
-      await ctx.plugin(MemorySettingsProvider)
-      const fiber = await ctx.plugin(firecrawlPlugin, {})
-      await ctx.settings.update(settingsNamespace(FIRECRAWL_SETTINGS_NAMESPACE), { useFirecrawl: false })
-      await new Promise(resolve => { setTimeout(resolve, 0) })
-      await ctx.web.search({ query: 'q' })
-      const [url] = fetchMock.mock.calls[0] as unknown as [string]
-      expect(url).toBe('https://api.deepseek.com/anthropic/v1/messages')
-      await fiber.dispose()
-    } finally {
-      if (prevDeepseekKey === undefined) delete process.env.DEEPSEEK_API_KEY
-      else process.env.DEEPSEEK_API_KEY = prevDeepseekKey
-    }
-  })
-
-  it('reconfigures the registered provider when a settings commit resolves', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({ success: true, data: [] }))
+describe('web-search-firecrawl live configuration', () => {
+  it('updates credentials, endpoint and limits without remounting the provider', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ success: true, data: [{ url: 'https://a.test', description: 'abcdef' }] }))
     vi.stubGlobal('fetch', fetchMock)
-    const ctx = new Context()
-    await ctx.plugin(WebRuntime, { searchProvider: FIRECRAWL_PROVIDER_ID })
-    await ctx.plugin(MemorySettingsProvider)
-    const fiber = await ctx.plugin(firecrawlPlugin, {})
-    const before = ctx.settings.describe({ redactSecrets: true })
-      .find(candidate => candidate.ns === settingsNamespace(FIRECRAWL_SETTINGS_NAMESPACE))
-    expect(before?.secrets).toContainEqual({ path: ['apiKey'], set: false })
-    await ctx.settings.update(settingsNamespace(FIRECRAWL_SETTINGS_NAMESPACE), {
-      apiKey: 'settings-key',
-      baseURL: 'https://settings.firecrawl.test',
-      limit: 4,
-    })
-    // Watcher notification is queued asynchronously by the settings seam.
-    await new Promise(resolve => { setTimeout(resolve, 0) })
-    await ctx.web.search({ query: 'q' })
-    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
-    expect(url).toBe('https://settings.firecrawl.test/v1/search')
-    expect((init.headers as Record<string, string>)['authorization']).toBe('Bearer settings-key')
-    expect(JSON.parse(init.body as string)).toMatchObject({ query: 'q', limit: 4 })
+    const { ctx, fiber, update } = await loadedPlugin({ apiKey: 'first-key' })
+    const initial = fiber.config
+    await ctx.web.search({ query: 'before' })
+    await update({ apiKey: 'next-key', baseURL: 'https://next.test', limit: 4, maxSnippetChars: 3 })
+    expect(fiber.config).toBe(initial)
+    const result = await ctx.web.search({ query: 'after' })
+    expect(fetchMock.mock.calls[1]).toEqual(['https://next.test/v1/search', expect.objectContaining({
+      headers: expect.objectContaining({ authorization: 'Bearer next-key' }),
+      body: JSON.stringify({ query: 'after', limit: 4 }),
+    })])
+    expect(result.sources[0]?.snippet).toBe('abc')
     await fiber.dispose()
+    await expect(ctx.web.search({ query: 'disposed' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_CONFIGURED_MISSING' })
+  })
+
+  it('switches to official DeepSeek search and back through volatile configuration', async () => {
+    vi.stubEnv('DEEPSEEK_API_KEY', 'deepseek-key')
+    const fetchMock = vi.fn(async (url: string | URL | Request) => String(url).includes('deepseek.com')
+      ? jsonResponse({ content: [{ type: 'web_search_tool_result', content: [{ type: 'web_search_result', url: 'https://deepseek.test', title: 'DeepSeek' }] }] })
+      : jsonResponse({ success: true, data: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { ctx, fiber, update } = await loadedPlugin({ apiKey: 'firecrawl-key' })
+    const initial = fiber.config
+    await update({ apiKey: 'firecrawl-key', useFirecrawl: false })
+    await ctx.web.search({ query: 'deepseek' })
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.deepseek.com/anthropic/v1/messages')
+    await update({ apiKey: 'firecrawl-key', useFirecrawl: true })
+    await ctx.web.search({ query: 'firecrawl' })
+    expect(fetchMock.mock.calls[1][0]).toBe('https://api.firecrawl.dev/v1/search')
+    expect(fiber.config).toBe(initial)
+  })
+
+  it('keeps every editable field volatile and hides the saved key in settings views', () => {
+    for (const field of Object.values(firecrawlPlugin.Config.dict!)) expect(field.meta.volatile).toBe(true)
+    const redacted = redactSecrets(firecrawlPlugin.Config as z<never>, { apiKey: 'private', useFirecrawl: false })
+    expect(redacted.value).not.toHaveProperty('apiKey')
+    expect(redacted.secrets).toContainEqual({ path: ['apiKey'], set: true })
+  })
+
+  it('uses the optional settings presentation policy and releases it on disposal', async () => {
+    const ctx = new Context()
+    onTestFinished(() => ctx.fiber.dispose())
+    const dispose = vi.fn()
+    const configure = vi.fn(() => dispose)
+    ctx.provide('settings', { configure })
+    await ctx.plugin(WebRuntime, { searchProvider: FIRECRAWL_PROVIDER_ID })
+    const fiber = await ctx.plugin(firecrawlPlugin, { apiKey: 'key' })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(configure).toHaveBeenCalledWith({ auto: false }, fiber)
+    await fiber.dispose()
+    expect(dispose).toHaveBeenCalledOnce()
   })
 })
 
@@ -446,7 +384,7 @@ describe('web-search-firecrawl plugin registration', () => {
       vi.stubGlobal('fetch', fetchMock)
       const ctx = new Context()
       await ctx.plugin(WebRuntime, { searchProvider: FIRECRAWL_PROVIDER_ID })
-      firecrawlPlugin.apply(ctx, {})
+      firecrawlPlugin.apply(ctx, firecrawlPlugin.Config({}))
       const result = await ctx.web.search({ query: 'q' })
       const [url] = fetchMock.mock.calls[0] as unknown as [string]
       expect(url).toBe('https://api.firecrawl.dev/v1/search')
